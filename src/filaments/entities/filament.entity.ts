@@ -1,34 +1,102 @@
-import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  CreateDateColumn,
+  UpdateDateColumn,
+  ManyToOne,
+  OneToMany,
+} from 'typeorm';
+import { MaterialType, FilamentStatus } from '../../common/enums/index.js';
+import { User } from '../../users/entities/user.entity.js';
+import { PrintLog } from '../../print-logs/entities/print-log.entity.js';
 
-@Entity()
+@Entity('filaments')
 export class Filament {
-  @PrimaryGeneratedColumn('uuid') // Genera IDs únicos tipo 'a1b2-c3d4...'
+  @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column()
-  brand: string; // Marca (e.g. "Sunlu")
+  @Column({ length: 100 })
+  brand: string;
 
-  @Column()
-  type: string; // Material (e.g. "PLA")
+  @Column({ type: 'enum', enum: MaterialType, default: MaterialType.PLA })
+  material: MaterialType;
 
-  @Column()
-  color: string; // Nombre del color
+  @Column({ length: 50 })
+  color: string;
 
-  @Column({ nullable: true })
-  colorHex: string; // Código Hexadecimal para mostrarlo en el frontend
+  @Column({ nullable: true, length: 7 })
+  colorHex: string;
 
-  @Column('float')
-  diameter: number; // 1.75 o 2.85
+  @Column('float', { default: 1.75 })
+  diameter: number;
 
-  @Column('float')
-  density: number; // g/cm3 (Crucial para cálculos)
+  @Column('float', { default: 1.24 })
+  density: number;
 
   @Column('int')
-  totalWeight: number; // Peso inicial en gramos (e.g. 1000)
+  totalWeight: number;
 
   @Column('float')
-  remainingWeight: number; // Peso actual
+  remainingWeight: number;
 
-  @Column('decimal', { precision: 10, scale: 2 })
-  price: number; // Precio de compra
+  @Column('decimal', { precision: 10, scale: 2, nullable: true })
+  price: number;
+
+  @Column({ default: 'EUR', length: 3 })
+  currency: string;
+
+  @Column({ nullable: true, length: 100 })
+  supplier: string;
+
+  @Column({ type: 'int', nullable: true })
+  printTempMin: number;
+
+  @Column({ type: 'int', nullable: true })
+  printTempMax: number;
+
+  @Column({ type: 'int', nullable: true })
+  bedTempMin: number;
+
+  @Column({ type: 'int', nullable: true })
+  bedTempMax: number;
+
+  @Column({
+    type: 'enum',
+    enum: FilamentStatus,
+    default: FilamentStatus.AVAILABLE,
+  })
+  status: FilamentStatus;
+
+  @Column({ type: 'date', nullable: true })
+  purchaseDate: Date;
+
+  @Column({ type: 'text', nullable: true })
+  notes: string;
+
+  @Column({ nullable: true })
+  imageUrl: string;
+
+  @Column({ nullable: true, length: 50 })
+  spoolType: string;
+
+  @ManyToOne(() => User, (user) => user.filaments, { eager: false })
+  createdBy: User;
+
+  @OneToMany(() => PrintLog, (log) => log.filament, { eager: false })
+  printLogs: PrintLog[];
+
+  @CreateDateColumn()
+  createdAt: Date;
+
+  @UpdateDateColumn()
+  updatedAt: Date;
+
+  /**
+   * Porcentaje de filamento restante
+   */
+  get remainingPercentage(): number {
+    if (this.totalWeight === 0) return 0;
+    return Math.round((this.remainingWeight / this.totalWeight) * 100);
+  }
 }

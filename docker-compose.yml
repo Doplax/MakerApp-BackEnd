@@ -1,16 +1,20 @@
-version: '3.8'
 services:
   db:
     image: postgres:15
     restart: always
     ports:
-      - "5432:5432"
+      - "5433:5432"
     environment:
       POSTGRES_USER: maker_user
       POSTGRES_PASSWORD: maker_password
       POSTGRES_DB: maker_db
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U maker_user -d maker_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 volumes:
   postgres_data:
