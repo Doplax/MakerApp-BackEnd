@@ -37,6 +37,36 @@ export class User {
   @Column({ nullable: true })
   avatarUrl: string;
 
+  // ── Perfil público ──────────────────────────────────────────
+  @Column({ nullable: true, length: 500 })
+  bio: string;
+
+  @Column({ nullable: true, length: 200 })
+  location: string;
+
+  @Column({ nullable: true, length: 200 })
+  website: string;
+
+  // ── Redes sociales ─────────────────────────────────────────
+  @Column({ nullable: true, length: 150 })
+  tiktok: string;
+
+  @Column({ nullable: true, length: 150 })
+  instagram: string;
+
+  @Column({ nullable: true, length: 150 })
+  facebook: string;
+
+  @Column({ nullable: true, length: 150 })
+  youtube: string;
+
+  @Column({ nullable: true, length: 150 })
+  twitter: string;
+
+  // ── Links adicionales (JSON array) ─────────────────────────
+  @Column({ type: 'jsonb', nullable: true, default: null })
+  customLinks: { label: string; url: string }[];
+
   @OneToMany(() => Filament, (filament) => filament.createdBy)
   filaments: Filament[];
 

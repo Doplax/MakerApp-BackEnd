@@ -8,16 +8,24 @@ export interface UserSeed {
 }
 
 export const usersToSeed: UserSeed[] = [
-  {
-    fullName: 'Maker Demo',
-    email: 'demo@filamanager.com',
-    password: 'demo123456',
-    role: UserRole.USER,
-  },
+  //  Admin
   {
     fullName: 'Admin FilaManager',
     email: 'admin@filamanager.com',
     password: 'admin123456',
     role: UserRole.ADMIN,
+  },
+  {
+    fullName: 'Pol Valle',
+    email: 'doplax@gmail.com',
+    password: 'P@ssw0rd',
+    role: UserRole.ADMIN,
+  },
+  //  Users
+  {
+    fullName: 'Maker Demo',
+    email: 'demo@filamanager.com',
+    password: 'demo123456',
+    role: UserRole.USER,
   },
 ];

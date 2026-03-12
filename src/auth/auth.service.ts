@@ -7,6 +7,8 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service.js';
 import { RegisterDto } from './dto/register.dto.js';
+import { UpdateProfileDto } from '../users/dto/update-profile.dto.js';
+import { ChangePasswordDto } from '../users/dto/change-password.dto.js';
 import { User } from '../users/entities/user.entity.js';
 
 @Injectable()
@@ -36,7 +38,7 @@ export class AuthService {
     return user;
   }
 
-  async login(user: User) {
+  login(user: User) {
     const payload = { sub: user.id, email: user.email, role: user.role };
     this.logger.log(`User logged in: ${user.email}`);
 
@@ -87,7 +89,40 @@ export class AuthService {
       email: user.email,
       role: user.role,
       avatarUrl: user.avatarUrl,
+      bio: user.bio,
+      location: user.location,
+      website: user.website,
+      tiktok: user.tiktok,
+      instagram: user.instagram,
+      facebook: user.facebook,
+      youtube: user.youtube,
+      twitter: user.twitter,
+      customLinks: user.customLinks,
       createdAt: user.createdAt,
     };
+  }
+
+  async updateProfile(userId: string, dto: UpdateProfileDto) {
+    const user = await this.usersService.updateProfile(userId, dto);
+    return {
+      id: user.id,
+      fullName: user.fullName,
+      email: user.email,
+      role: user.role,
+      avatarUrl: user.avatarUrl,
+      bio: user.bio,
+      location: user.location,
+      website: user.website,
+      tiktok: user.tiktok,
+      instagram: user.instagram,
+      facebook: user.facebook,
+      youtube: user.youtube,
+      twitter: user.twitter,
+      customLinks: user.customLinks,
+    };
+  }
+
+  async changePassword(userId: string, dto: ChangePasswordDto) {
+    return this.usersService.changePassword(userId, dto);
   }
 }

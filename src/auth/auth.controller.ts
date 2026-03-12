@@ -2,14 +2,16 @@ import {
   Controller,
   Post,
   Get,
+  Patch,
   Body,
   UseGuards,
   Request,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { AuthService } from './auth.service.js';
-import { LoginDto } from './dto/login.dto.js';
 import { RegisterDto } from './dto/register.dto.js';
+import { UpdateProfileDto } from '../users/dto/update-profile.dto.js';
+import { ChangePasswordDto } from '../users/dto/change-password.dto.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { User } from '../users/entities/user.entity.js';
 
@@ -19,24 +21,36 @@ export class AuthController {
 
   @Post('login')
   @UseGuards(AuthGuard('local'))
-  async login(@Request() req: { user: User }, @Body() _loginDto: LoginDto) {
+  login(@Request() req: { user: User }) {
     return this.authService.login(req.user);
   }
 
   @Post('register')
-  async register(@Body() registerDto: RegisterDto) {
+  register(@Body() registerDto: RegisterDto) {
     return this.authService.register(registerDto);
   }
 
   @Get('profile')
   @UseGuards(AuthGuard('jwt'))
-  async getProfile(@CurrentUser() user: User) {
+  getProfile(@CurrentUser() user: User) {
     return this.authService.getProfile(user.id);
+  }
+
+  @Patch('profile')
+  @UseGuards(AuthGuard('jwt'))
+  updateProfile(@CurrentUser() user: User, @Body() dto: UpdateProfileDto) {
+    return this.authService.updateProfile(user.id, dto);
+  }
+
+  @Patch('change-password')
+  @UseGuards(AuthGuard('jwt'))
+  changePassword(@CurrentUser() user: User, @Body() dto: ChangePasswordDto) {
+    return this.authService.changePassword(user.id, dto);
   }
 
   @Get('check')
   @UseGuards(AuthGuard('jwt'))
-  async checkAuth(@CurrentUser() user: User) {
+  checkAuth(@CurrentUser() user: User) {
     return { authenticated: true, userId: user.id };
   }
 }
