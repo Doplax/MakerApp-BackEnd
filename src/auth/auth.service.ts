@@ -23,16 +23,18 @@ export class AuthService {
   async validateUser(email: string, password: string): Promise<User | null> {
     const user = await this.usersService.findByEmail(email);
     if (!user) {
-      return null;
+      throw new UnauthorizedException(
+        'El correo electrónico no se encuentra registrado',
+      );
     }
 
     if (!user.isActive) {
-      throw new UnauthorizedException('User account is deactivated');
+      throw new UnauthorizedException('La cuenta de usuario está desactivada');
     }
 
     const isPasswordValid = await user.checkPassword(password);
     if (!isPasswordValid) {
-      return null;
+      throw new UnauthorizedException('La contraseña es incorrecta');
     }
 
     return user;
