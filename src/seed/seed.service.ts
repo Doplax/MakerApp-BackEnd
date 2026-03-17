@@ -44,15 +44,16 @@ export class SeedService {
       savedUsers.push(await this.userRepository.save(user));
     }
 
-    // El primer usuario (demo) es el owner de los recursos
-    const demoUser = savedUsers[0];
+    // Buscamos el usuario 'doplax' por email, o el primero por defecto
+    const doplaxUser =
+      savedUsers.find((u) => u.email === 'doplax@gmail.com') || savedUsers[0];
 
     // Crear filamentos
     const savedFilaments: Filament[] = [];
     for (const data of filamentsToSeed) {
       const filament = this.filamentRepository.create({
         ...data,
-        createdBy: demoUser,
+        createdBy: doplaxUser,
       });
       savedFilaments.push(await this.filamentRepository.save(filament));
     }
@@ -62,7 +63,7 @@ export class SeedService {
     for (const data of printersToSeed) {
       const printer = this.printerRepository.create({
         ...data,
-        createdBy: demoUser,
+        createdBy: doplaxUser,
       });
       savedPrinters.push(await this.printerRepository.save(printer));
     }
@@ -72,7 +73,7 @@ export class SeedService {
     for (const data of projectsToSeed) {
       const project = this.projectRepository.create({
         ...data,
-        createdBy: demoUser,
+        createdBy: doplaxUser,
       });
       savedProjects.push(await this.projectRepository.save(project));
     }
@@ -86,7 +87,7 @@ export class SeedService {
         printer: savedPrinters[printerIndex],
         project:
           projectIndex !== undefined ? savedProjects[projectIndex] : undefined,
-        createdBy: demoUser,
+        createdBy: doplaxUser,
       });
       await this.printLogRepository.save(printLog);
     }

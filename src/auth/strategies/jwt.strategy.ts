@@ -25,10 +25,18 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: JwtPayload) {
-    const user = await this.usersService.findOne(payload.sub);
-    if (!user || !user.isActive) {
-      throw new UnauthorizedException('User not found or inactive');
+    try {
+      const user = await this.usersService.findOne(payload.sub);
+      if (!user || !user.isActive) {
+        throw new UnauthorizedException(
+          'El usuario no existe o ha sido desactivado',
+        );
+      }
+      return user;
+    } catch {
+      throw new UnauthorizedException(
+        'Token inválido o expirado. Inicia sesión nuevamente.',
+      );
     }
-    return user;
   }
 }
