@@ -28,7 +28,10 @@ export class HttpExceptionFilter implements ExceptionFilter {
         message = exceptionResponse;
       } else if (typeof exceptionResponse === 'object') {
         const resp = exceptionResponse as Record<string, unknown>;
-        message = (resp.message as string | string[]) || (resp.error as string) || 'Unknown error';
+        message =
+          (resp.message as string | string[]) ||
+          (resp.error as string) ||
+          'Unknown error';
       }
     }
 
