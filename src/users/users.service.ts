@@ -118,4 +118,72 @@ export class UsersService {
     this.logger.log(`Password changed for user ${id}`);
     return { message: 'Contraseña actualizada correctamente' };
   }
+
+  /**
+   * Obtiene el perfil público de un usuario (maker)
+   * Carga solo información pública y relaciones públicas (printers, projects)
+   */
+  async findPublicProfile(id: string) {
+    const user = await this.userRepository.findOne({
+      where: { id },
+      relations: ['printers', 'projects'],
+      select: [
+        'id',
+        'fullName',
+        'avatarUrl',
+        'bio',
+        'location',
+        'website',
+        'tiktok',
+        'instagram',
+        'facebook',
+        'youtube',
+        'twitter',
+        'customLinks',
+      ],
+    });
+
+    if (!user) {
+      throw new NotFoundException(`User with ID ${id} not found`);
+    }
+
+    // Filtrar solo campos públicos de printers
+    const publicPrinters = (user.printers || []).map((p) => ({
+      id: p.id,
+      name: p.name,
+      brand: p.brand,
+      model: p.model,
+      type: p.type,
+      status: p.status,
+      imageUrl: p.imageUrl,
+    }));
+
+    // Filtrar solo campos públicos de projects
+    const publicProjects = (user.projects || []).map((p) => ({
+      id: p.id,
+      name: p.name,
+      description: p.description,
+      status: p.status,
+      imageUrl: p.imageUrl,
+      estimatedWeight: p.estimatedWeight,
+      estimatedTime: p.estimatedTime,
+    }));
+
+    return {
+      id: user.id,
+      fullName: user.fullName,
+      avatarUrl: user.avatarUrl,
+      bio: user.bio,
+      location: user.location,
+      website: user.website,
+      tiktok: user.tiktok,
+      instagram: user.instagram,
+      facebook: user.facebook,
+      youtube: user.youtube,
+      twitter: user.twitter,
+      customLinks: user.customLinks,
+      printers: publicPrinters,
+      projects: publicProjects,
+    };
+  }
 }
