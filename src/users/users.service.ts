@@ -120,6 +120,32 @@ export class UsersService {
   }
 
   /**
+   * Devuelve todos los makers activos que tienen coordenadas definidas,
+   * con la información mínima necesaria para mostrarlos en el mapa.
+   */
+  async findMakersOnMap(): Promise<
+    { id: string; fullName: string; avatarUrl: string; bio: string; location: string; latitude: number; longitude: number }[]
+  > {
+    const makers = await this.userRepository
+      .createQueryBuilder('u')
+      .select(['u.id', 'u.fullName', 'u.avatarUrl', 'u.bio', 'u.location', 'u.latitude', 'u.longitude'])
+      .where('u.isActive = :active', { active: true })
+      .andWhere('u.latitude IS NOT NULL')
+      .andWhere('u.longitude IS NOT NULL')
+      .getMany();
+
+    return makers.map((u) => ({
+      id: u.id,
+      fullName: u.fullName,
+      avatarUrl: u.avatarUrl ?? null,
+      bio: u.bio ?? null,
+      location: u.location ?? null,
+      latitude: Number(u.latitude),
+      longitude: Number(u.longitude),
+    }));
+  }
+
+  /**
    * Obtiene el perfil público de un usuario (maker)
    * Carga solo información pública y relaciones públicas (printers, projects)
    */
@@ -133,6 +159,8 @@ export class UsersService {
         'avatarUrl',
         'bio',
         'location',
+        'latitude',
+        'longitude',
         'website',
         'tiktok',
         'instagram',
@@ -175,6 +203,8 @@ export class UsersService {
       avatarUrl: user.avatarUrl,
       bio: user.bio,
       location: user.location,
+      latitude: user.latitude ? Number(user.latitude) : null,
+      longitude: user.longitude ? Number(user.longitude) : null,
       website: user.website,
       tiktok: user.tiktok,
       instagram: user.instagram,

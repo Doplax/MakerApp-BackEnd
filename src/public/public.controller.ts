@@ -17,6 +17,11 @@ export class PublicController {
    * @param id UUID del usuario (maker)
    * @returns PublicMakerProfileDto con solo información pública
    */
+  @Get('makers')
+  async getMakersOnMap() {
+    return this.usersService.findMakersOnMap();
+  }
+
   @Get('makers/:id')
   async getPublicMakerProfile(
     @Param('id', ParseUUIDPipe) id: string,
