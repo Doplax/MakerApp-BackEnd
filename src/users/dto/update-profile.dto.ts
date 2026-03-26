@@ -1,9 +1,12 @@
 import {
   IsArray,
+  IsNumber,
   IsOptional,
   IsString,
   IsUrl,
+  Max,
   MaxLength,
+  Min,
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
@@ -38,6 +41,18 @@ export class UpdateProfileDto {
   @IsOptional()
   @MaxLength(200)
   website?: string;
+
+  @IsNumber()
+  @IsOptional()
+  @Min(-90)
+  @Max(90)
+  latitude?: number;
+
+  @IsNumber()
+  @IsOptional()
+  @Min(-180)
+  @Max(180)
+  longitude?: number;
 
   @IsString()
   @IsOptional()
