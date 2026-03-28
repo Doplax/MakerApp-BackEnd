@@ -39,7 +39,7 @@ async function bootstrap() {
 
   // Swagger
   const config = new DocumentBuilder()
-    .setTitle('MakerApp API')
+    .setTitle('MakerUpp API')
     .setDescription(
       'API para gestión de inventario de filamentos 3D, impresoras y proyectos',
     )
@@ -60,7 +60,7 @@ async function bootstrap() {
   const port = process.env.PORT ?? 3000;
   await app.listen(port);
 
-  logger.log(`🚀 MakerApp API running on: http://localhost:${port}/api`);
+  logger.log(`🚀 MakerUpp API running on: http://localhost:${port}/api`);
   logger.log(`📚 Swagger docs available at: http://localhost:${port}/api/docs`);
 }
 bootstrap();
