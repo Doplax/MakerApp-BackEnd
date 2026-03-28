@@ -12,6 +12,7 @@ import { PrintLogsModule } from './print-logs/print-logs.module.js';
 import { StatisticsModule } from './statistics/statistics.module.js';
 import { SeedModule } from './seed/seed.module.js';
 import { PublicModule } from './public/public.module.js';
+import { FollowsModule } from './follows/follows.module.js';
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { PublicModule } from './public/public.module.js';
     StatisticsModule,
     SeedModule,
     PublicModule,
+    FollowsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
