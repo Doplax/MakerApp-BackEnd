@@ -15,16 +15,16 @@ export class CreateFilamentDto {
   @IsString()
   @IsNotEmpty()
   @MaxLength(100)
-  brand: string;
+  brand!: string;
 
   @IsEnum(MaterialType)
   @IsNotEmpty()
-  material: MaterialType;
+  material!: MaterialType;
 
   @IsString()
   @IsNotEmpty()
   @MaxLength(50)
-  color: string;
+  color!: string;
 
   @IsString()
   @IsOptional()
@@ -43,7 +43,7 @@ export class CreateFilamentDto {
 
   @IsInt()
   @IsPositive()
-  totalWeight: number;
+  totalWeight!: number;
 
   @IsNumber()
   @Min(0)

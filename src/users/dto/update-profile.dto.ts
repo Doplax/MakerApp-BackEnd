@@ -15,11 +15,11 @@ import { Type } from 'class-transformer';
 class CustomLinkDto {
   @IsString()
   @MaxLength(100)
-  label: string;
+  label!: string;
 
   @IsUrl()
   @MaxLength(500)
-  url: string;
+  url!: string;
 }
 
 export class UpdateProfileDto {

@@ -9,7 +9,10 @@ import { Repository } from 'typeorm';
 import { CreatePrintLogDto } from './dto/create-print-log.dto.js';
 import { UpdatePrintLogDto } from './dto/update-print-log.dto.js';
 import { PrintLog } from './entities/print-log.entity.js';
+import { Filament } from '../filaments/entities/filament.entity.js';
 import { FilamentsService } from '../filaments/filaments.service.js';
+import { Printer } from '../printers/entities/printer.entity.js';
+import { Project } from '../projects/entities/project.entity.js';
 import { User } from '../users/entities/user.entity.js';
 
 @Injectable()
@@ -117,9 +120,9 @@ export class PrintLogsService {
     }
 
     Object.assign(printLog, logData);
-    if (filamentId) printLog.filament = { id: filamentId } as any;
-    if (printerId) printLog.printer = { id: printerId } as any;
-    if (projectId) printLog.project = { id: projectId } as any;
+    if (filamentId) printLog.filament = { id: filamentId } as Filament;
+    if (printerId) printLog.printer = { id: printerId } as Printer;
+    if (projectId) printLog.project = { id: projectId } as Project;
 
     return this.printLogRepository.save(printLog);
   }

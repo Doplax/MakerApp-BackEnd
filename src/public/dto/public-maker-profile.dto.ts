@@ -4,28 +4,28 @@
  */
 
 export class PublicPrinterDto {
-  id: string;
-  name: string;
-  brand: string;
-  model: string;
-  type: string;
-  status: string;
+  id!: string;
+  name!: string;
+  brand!: string;
+  model!: string;
+  type!: string;
+  status!: string;
   imageUrl?: string;
 }
 
 export class PublicProjectDto {
-  id: string;
-  name: string;
+  id!: string;
+  name!: string;
   description?: string;
-  status: string;
+  status!: string;
   imageUrl?: string;
   estimatedWeight?: number;
   estimatedTime?: number;
 }
 
 export class PublicMakerProfileDto {
-  id: string;
-  fullName: string;
+  id!: string;
+  fullName!: string;
   avatarUrl?: string;
 
   // Información pública del perfil
@@ -44,6 +44,6 @@ export class PublicMakerProfileDto {
   customLinks?: { label: string; url: string }[];
 
   // Datos públicos de relaciones
-  printers: PublicPrinterDto[];
-  projects: PublicProjectDto[];
+  printers!: PublicPrinterDto[];
+  projects!: PublicProjectDto[];
 }

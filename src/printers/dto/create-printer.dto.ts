@@ -13,17 +13,17 @@ export class CreatePrinterDto {
   @IsString()
   @IsNotEmpty()
   @MaxLength(100)
-  name: string;
+  name!: string;
 
   @IsString()
   @IsNotEmpty()
   @MaxLength(100)
-  brand: string;
+  brand!: string;
 
   @IsString()
   @IsNotEmpty()
   @MaxLength(100)
-  model: string;
+  model!: string;
 
   @IsString()
   @IsIn(['FDM', 'SLA', 'SLS', 'DLP'])

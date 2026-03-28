@@ -13,45 +13,45 @@ import { PrintLog } from '../../print-logs/entities/print-log.entity.js';
 @Entity('projects')
 export class Project {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column({ length: 150 })
-  name: string;
+  name!: string;
 
   @Column({ type: 'text', nullable: true })
-  description: string;
+  description!: string;
 
   @Column({
     type: 'enum',
     enum: ['draft', 'in_progress', 'completed', 'archived'],
     default: 'draft',
   })
-  status: string;
+  status!: string;
 
   @Column({ nullable: true })
-  imageUrl: string;
+  imageUrl!: string;
 
   @Column({ nullable: true })
-  stlFileUrl: string;
+  stlFileUrl!: string;
 
   @Column('float', { nullable: true })
-  estimatedWeight: number;
+  estimatedWeight!: number;
 
   @Column('float', { nullable: true })
-  estimatedTime: number; // en minutos
+  estimatedTime!: number; // en minutos
 
   @Column({ type: 'text', nullable: true })
-  notes: string;
+  notes!: string;
 
   @ManyToOne(() => User, (user) => user.projects, { eager: false })
-  createdBy: User;
+  createdBy!: User;
 
   @OneToMany(() => PrintLog, (log) => log.project, { eager: false })
-  printLogs: PrintLog[];
+  printLogs!: PrintLog[];
 
   @CreateDateColumn()
-  createdAt: Date;
+  createdAt!: Date;
 
   @UpdateDateColumn()
-  updatedAt: Date;
+  updatedAt!: Date;
 }

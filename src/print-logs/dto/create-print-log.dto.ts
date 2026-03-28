@@ -14,7 +14,7 @@ export class CreatePrintLogDto {
   @IsString()
   @IsNotEmpty()
   @MaxLength(150)
-  name: string;
+  name!: string;
 
   @IsString()
   @IsOptional()
@@ -22,7 +22,7 @@ export class CreatePrintLogDto {
 
   @IsNumber()
   @IsPositive()
-  weightUsed: number;
+  weightUsed!: number;
 
   @IsNumber()
   @IsPositive()
@@ -43,7 +43,7 @@ export class CreatePrintLogDto {
 
   @IsUUID()
   @IsNotEmpty()
-  filamentId: string;
+  filamentId!: string;
 
   @IsUUID()
   @IsOptional()

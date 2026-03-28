@@ -13,60 +13,60 @@ import { PrintLog } from '../../print-logs/entities/print-log.entity.js';
 @Entity('printers')
 export class Printer {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column({ length: 100 })
-  name: string;
+  name!: string;
 
   @Column({ length: 100 })
-  brand: string;
+  brand!: string;
 
   @Column({ length: 100 })
-  model: string;
+  model!: string;
 
   @Column({ type: 'enum', enum: ['FDM', 'SLA', 'SLS', 'DLP'], default: 'FDM' })
-  type: string;
+  type!: string;
 
   @Column('int', { nullable: true })
-  buildVolumeX: number;
+  buildVolumeX!: number;
 
   @Column('int', { nullable: true })
-  buildVolumeY: number;
+  buildVolumeY!: number;
 
   @Column('int', { nullable: true })
-  buildVolumeZ: number;
+  buildVolumeZ!: number;
 
   @Column('float', { nullable: true })
-  nozzleDiameter: number;
+  nozzleDiameter!: number;
 
   @Column({
     type: 'enum',
     enum: ['idle', 'printing', 'maintenance', 'offline'],
     default: 'idle',
   })
-  status: string;
+  status!: string;
 
   @Column({ type: 'date', nullable: true })
-  purchaseDate: Date;
+  purchaseDate!: Date;
 
   @Column({ type: 'text', nullable: true })
-  notes: string;
+  notes!: string;
 
   @Column({ nullable: true })
-  imageUrl: string;
+  imageUrl!: string;
 
   @Column({ default: true })
-  isActive: boolean;
+  isActive!: boolean;
 
   @ManyToOne(() => User, (user) => user.printers, { eager: false })
-  createdBy: User;
+  createdBy!: User;
 
   @OneToMany(() => PrintLog, (log) => log.printer, { eager: false })
-  printLogs: PrintLog[];
+  printLogs!: PrintLog[];
 
   @CreateDateColumn()
-  createdAt: Date;
+  createdAt!: Date;
 
   @UpdateDateColumn()
-  updatedAt: Date;
+  updatedAt!: Date;
 }

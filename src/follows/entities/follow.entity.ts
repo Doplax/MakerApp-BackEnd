@@ -12,16 +12,16 @@ import { User } from '../../users/entities/user.entity.js';
 @Unique(['follower', 'following'])
 export class Follow {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @ManyToOne(() => User, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'followerId' })
-  follower: User;
+  follower!: User;
 
   @ManyToOne(() => User, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'followingId' })
-  following: User;
+  following!: User;
 
   @CreateDateColumn()
-  createdAt: Date;
+  createdAt!: Date;
 }

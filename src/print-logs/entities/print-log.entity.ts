@@ -15,59 +15,59 @@ import { User } from '../../users/entities/user.entity.js';
 @Entity('print_logs')
 export class PrintLog {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column({ length: 150 })
-  name: string;
+  name!: string;
 
   @Column({ type: 'text', nullable: true })
-  description: string;
+  description!: string;
 
   @Column('float')
-  weightUsed: number; // gramos de filamento usados
+  weightUsed!: number; // gramos de filamento usados
 
   @Column('float', { nullable: true })
-  printDuration: number; // duración en minutos
+  printDuration!: number; // duración en minutos
 
   @Column({
     type: 'enum',
     enum: PrintStatus,
     default: PrintStatus.COMPLETED,
   })
-  status: PrintStatus;
+  status!: PrintStatus;
 
   @Column({ type: 'text', nullable: true })
-  notes: string;
+  notes!: string;
 
   @Column({ nullable: true })
-  imageUrl: string;
+  imageUrl!: string;
 
   @ManyToOne(() => Filament, (filament) => filament.printLogs, {
     eager: true,
     onDelete: 'CASCADE',
   })
-  filament: Filament;
+  filament!: Filament;
 
   @ManyToOne(() => Printer, (printer) => printer.printLogs, {
     eager: true,
     nullable: true,
     onDelete: 'SET NULL',
   })
-  printer: Printer;
+  printer!: Printer;
 
   @ManyToOne(() => Project, (project) => project.printLogs, {
     eager: true,
     nullable: true,
     onDelete: 'SET NULL',
   })
-  project: Project;
+  project!: Project;
 
   @ManyToOne(() => User, { eager: false })
-  createdBy: User;
+  createdBy!: User;
 
   @CreateDateColumn()
-  createdAt: Date;
+  createdAt!: Date;
 
   @UpdateDateColumn()
-  updatedAt: Date;
+  updatedAt!: Date;
 }

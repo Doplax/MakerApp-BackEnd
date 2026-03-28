@@ -14,83 +14,83 @@ import { PrintLog } from '../../print-logs/entities/print-log.entity.js';
 @Entity('filaments')
 export class Filament {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column({ length: 100 })
-  brand: string;
+  brand!: string;
 
   @Column({ type: 'enum', enum: MaterialType, default: MaterialType.PLA })
-  material: MaterialType;
+  material!: MaterialType;
 
   @Column({ length: 50 })
-  color: string;
+  color!: string;
 
   @Column({ nullable: true, length: 7 })
-  colorHex: string;
+  colorHex!: string;
 
   @Column('float', { default: 1.75 })
-  diameter: number;
+  diameter!: number;
 
   @Column('float', { default: 1.24 })
-  density: number;
+  density!: number;
 
   @Column('int')
-  totalWeight: number;
+  totalWeight!: number;
 
   @Column('float')
-  remainingWeight: number;
+  remainingWeight!: number;
 
   @Column('decimal', { precision: 10, scale: 2, nullable: true })
-  price: number;
+  price!: number;
 
   @Column({ default: 'EUR', length: 3 })
-  currency: string;
+  currency!: string;
 
   @Column({ nullable: true, length: 100 })
-  supplier: string;
+  supplier!: string;
 
   @Column({ type: 'int', nullable: true })
-  printTempMin: number;
+  printTempMin!: number;
 
   @Column({ type: 'int', nullable: true })
-  printTempMax: number;
+  printTempMax!: number;
 
   @Column({ type: 'int', nullable: true })
-  bedTempMin: number;
+  bedTempMin!: number;
 
   @Column({ type: 'int', nullable: true })
-  bedTempMax: number;
+  bedTempMax!: number;
 
   @Column({
     type: 'enum',
     enum: FilamentStatus,
     default: FilamentStatus.AVAILABLE,
   })
-  status: FilamentStatus;
+  status!: FilamentStatus;
 
   @Column({ type: 'date', nullable: true })
-  purchaseDate: Date;
+  purchaseDate!: Date;
 
   @Column({ type: 'text', nullable: true })
-  notes: string;
+  notes!: string;
 
   @Column({ nullable: true })
-  imageUrl: string;
+  imageUrl!: string;
 
   @Column({ nullable: true, length: 50 })
-  spoolType: string;
+  spoolType!: string;
 
   @ManyToOne(() => User, (user) => user.filaments, { eager: false })
-  createdBy: User;
+  createdBy!: User;
 
   @OneToMany(() => PrintLog, (log) => log.filament, { eager: false })
-  printLogs: PrintLog[];
+  printLogs!: PrintLog[];
 
   @CreateDateColumn()
-  createdAt: Date;
+  createdAt!: Date;
 
   @UpdateDateColumn()
-  updatedAt: Date;
+  updatedAt!: Date;
 
   /**
    * Porcentaje de filamento restante

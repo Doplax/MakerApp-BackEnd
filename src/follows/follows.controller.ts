@@ -6,10 +6,11 @@ import {
   Param,
   ParseUUIDPipe,
   UseGuards,
-  Request,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { FollowsService } from './follows.service.js';
+import { CurrentUser } from '../common/decorators/current-user.decorator.js';
+import { User } from '../users/entities/user.entity.js';
 
 @Controller('follows')
 @UseGuards(AuthGuard('jwt'))
@@ -18,32 +19,32 @@ export class FollowsController {
 
   @Post(':makerId')
   async follow(
-    @Request() req: any,
+    @CurrentUser() user: User,
     @Param('makerId', ParseUUIDPipe) makerId: string,
   ) {
-    return this.followsService.follow(req.user.id, makerId);
+    return this.followsService.follow(user.id, makerId);
   }
 
   @Delete(':makerId')
   async unfollow(
-    @Request() req: any,
+    @CurrentUser() user: User,
     @Param('makerId', ParseUUIDPipe) makerId: string,
   ) {
-    return this.followsService.unfollow(req.user.id, makerId);
+    return this.followsService.unfollow(user.id, makerId);
   }
 
   @Get('check/:makerId')
   async isFollowing(
-    @Request() req: any,
+    @CurrentUser() user: User,
     @Param('makerId', ParseUUIDPipe) makerId: string,
   ) {
-    const following = await this.followsService.isFollowing(req.user.id, makerId);
+    const following = await this.followsService.isFollowing(user.id, makerId);
     return { following };
   }
 
   @Get('my/following')
-  async getMyFollowing(@Request() req: any) {
-    return this.followsService.getFollowing(req.user.id);
+  async getMyFollowing(@CurrentUser() user: User) {
+    return this.followsService.getFollowing(user.id);
   }
 
   @Get('count/:makerId')

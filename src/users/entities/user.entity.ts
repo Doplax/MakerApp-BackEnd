@@ -17,101 +17,101 @@ import { Project } from '../../projects/entities/project.entity.js';
 @Entity('users')
 export class User {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column({ length: 100 })
-  fullName: string;
+  fullName!: string;
 
   @Column({ unique: true, length: 150 })
-  email: string;
+  email!: string;
 
   @Column({ select: false })
-  password: string;
+  password!: string;
 
   @Column({ type: 'enum', enum: UserRole, default: UserRole.USER })
-  role: UserRole;
+  role!: UserRole;
 
   @Column({ default: true })
-  isActive: boolean;
+  isActive!: boolean;
 
   @Column({ nullable: true })
-  avatarUrl: string;
+  avatarUrl!: string;
 
   // ── Perfil público ──────────────────────────────────────────
   @Column({ nullable: true, length: 500 })
-  bio: string;
+  bio!: string;
 
   @Column({ nullable: true, length: 200 })
-  location: string;
+  location!: string;
 
   @Column({ type: 'decimal', precision: 10, scale: 7, nullable: true })
-  latitude: number;
+  latitude!: number;
 
   @Column({ type: 'decimal', precision: 10, scale: 7, nullable: true })
-  longitude: number;
+  longitude!: number;
 
   @Column({ nullable: true, length: 200 })
-  website: string;
+  website!: string;
 
   // ── Redes sociales ─────────────────────────────────────────
   @Column({ nullable: true, length: 150 })
-  tiktok: string;
+  tiktok!: string;
 
   @Column({ nullable: true, length: 150 })
-  instagram: string;
+  instagram!: string;
 
   @Column({ nullable: true, length: 150 })
-  facebook: string;
+  facebook!: string;
 
   @Column({ nullable: true, length: 150 })
-  youtube: string;
+  youtube!: string;
 
   @Column({ nullable: true, length: 150 })
-  twitter: string;
+  twitter!: string;
 
   // ── Links adicionales (JSON array) ─────────────────────────
   @Column({ type: 'jsonb', nullable: true, default: null })
-  customLinks: { label: string; url: string }[];
+  customLinks!: { label: string; url: string }[];
 
   // ── Costes y tarifas del maker ─────────────────────────────
   @Column({ type: 'decimal', precision: 10, scale: 4, nullable: true })
-  electricityCost: number; // €/kWh
+  electricityCost!: number; // €/kWh
 
   @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
-  makerHourlyRate: number; // €/hora
+  makerHourlyRate!: number; // €/hora
 
   @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
-  shippingCostDefault: number; // € envío por defecto
+  shippingCostDefault!: number; // € envío por defecto
 
   @Column({ type: 'decimal', precision: 5, scale: 2, nullable: true })
-  wastagePercent: number; // % merma
+  wastagePercent!: number; // % merma
 
   @Column({ type: 'decimal', precision: 5, scale: 2, nullable: true })
-  productProfitMargin: number; // % margen beneficio producto
+  productProfitMargin!: number; // % margen beneficio producto
 
   @Column({ type: 'decimal', precision: 5, scale: 2, nullable: true })
-  laborProfitMargin: number; // % margen beneficio mano de obra
+  laborProfitMargin!: number; // % margen beneficio mano de obra
 
   @Column({ default: true })
-  chargesVat: boolean; // ¿Factura IVA?
+  chargesVat!: boolean; // ¿Factura IVA?
 
   @Column({ type: 'decimal', precision: 5, scale: 2, nullable: true, default: 21 })
-  vatPercent: number; // % IVA (default 21% España)
+  vatPercent!: number; // % IVA (default 21% España)
 
   @OneToMany(() => Filament, (filament) => filament.createdBy)
-  filaments: Filament[];
+  filaments!: Filament[];
 
   @OneToMany(() => Printer, (printer) => printer.createdBy)
-  printers: Printer[];
+  printers!: Printer[];
 
   @OneToMany(() => Project, (project) => project.createdBy)
-  projects: Project[];
+  projects!: Project[];
 
   @CreateDateColumn()
-  createdAt: Date;
+  createdAt!: Date;
 
   @UpdateDateColumn()
-  updatedAt: Date;
+  updatedAt!: Date;
 
   @BeforeInsert()
   @BeforeUpdate()
