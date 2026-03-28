@@ -18,7 +18,7 @@ import { JwtStrategy } from './strategies/jwt.strategy.js';
       useFactory: (configService: ConfigService) => ({
         secret:
           configService.get<string>('JWT_SECRET') ||
-          'filamanager-super-secret-key',
+          'MakerApp-super-secret-key',
         signOptions: {
           expiresIn: (configService.get<string>('JWT_EXPIRATION') ||
             '24h') as any,

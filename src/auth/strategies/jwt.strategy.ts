@@ -20,7 +20,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       ignoreExpiration: false,
       secretOrKey:
         configService.get<string>('JWT_SECRET') ||
-        'filamanager-super-secret-key',
+        'MakerApp-super-secret-key',
     });
   }
 
