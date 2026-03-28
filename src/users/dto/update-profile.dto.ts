@@ -1,5 +1,6 @@
 import {
   IsArray,
+  IsBoolean,
   IsNumber,
   IsOptional,
   IsString,
@@ -90,4 +91,48 @@ export class UpdateProfileDto {
   @ValidateNested({ each: true })
   @Type(() => CustomLinkDto)
   customLinks?: { label: string; url: string }[];
+
+  // ── Costes y tarifas ──────────────────────────────────────
+  @IsNumber()
+  @IsOptional()
+  @Min(0)
+  electricityCost?: number;
+
+  @IsNumber()
+  @IsOptional()
+  @Min(0)
+  makerHourlyRate?: number;
+
+  @IsNumber()
+  @IsOptional()
+  @Min(0)
+  shippingCostDefault?: number;
+
+  @IsNumber()
+  @IsOptional()
+  @Min(0)
+  @Max(100)
+  wastagePercent?: number;
+
+  @IsNumber()
+  @IsOptional()
+  @Min(0)
+  @Max(100)
+  productProfitMargin?: number;
+
+  @IsNumber()
+  @IsOptional()
+  @Min(0)
+  @Max(100)
+  laborProfitMargin?: number;
+
+  @IsBoolean()
+  @IsOptional()
+  chargesVat?: boolean;
+
+  @IsNumber()
+  @IsOptional()
+  @Min(0)
+  @Max(100)
+  vatPercent?: number;
 }

@@ -73,6 +73,31 @@ export class User {
   @Column({ type: 'jsonb', nullable: true, default: null })
   customLinks: { label: string; url: string }[];
 
+  // ── Costes y tarifas del maker ─────────────────────────────
+  @Column({ type: 'decimal', precision: 10, scale: 4, nullable: true })
+  electricityCost: number; // €/kWh
+
+  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
+  makerHourlyRate: number; // €/hora
+
+  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
+  shippingCostDefault: number; // € envío por defecto
+
+  @Column({ type: 'decimal', precision: 5, scale: 2, nullable: true })
+  wastagePercent: number; // % merma
+
+  @Column({ type: 'decimal', precision: 5, scale: 2, nullable: true })
+  productProfitMargin: number; // % margen beneficio producto
+
+  @Column({ type: 'decimal', precision: 5, scale: 2, nullable: true })
+  laborProfitMargin: number; // % margen beneficio mano de obra
+
+  @Column({ default: true })
+  chargesVat: boolean; // ¿Factura IVA?
+
+  @Column({ type: 'decimal', precision: 5, scale: 2, nullable: true, default: 21 })
+  vatPercent: number; // % IVA (default 21% España)
+
   @OneToMany(() => Filament, (filament) => filament.createdBy)
   filaments: Filament[];
 
