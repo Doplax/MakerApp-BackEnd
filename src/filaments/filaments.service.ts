@@ -1,10 +1,11 @@
-import { Injectable, NotFoundException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, SelectQueryBuilder } from 'typeorm';
 import { CreateFilamentDto } from './dto/create-filament.dto.js';
 import { UpdateFilamentDto } from './dto/update-filament.dto.js';
 import { FilterFilamentDto } from './dto/filter-filament.dto.js';
 import { Filament } from './entities/filament.entity.js';
+import { FilamentCatalog } from '../filament-catalog/entities/filament-catalog.entity.js';
 import { User } from '../users/entities/user.entity.js';
 import { FilamentStatus } from '../common/enums/index.js';
 
@@ -15,16 +16,60 @@ export class FilamentsService {
   constructor(
     @InjectRepository(Filament)
     private readonly filamentRepository: Repository<Filament>,
+    @InjectRepository(FilamentCatalog)
+    private readonly catalogRepository: Repository<FilamentCatalog>,
   ) {}
 
   async create(
     createFilamentDto: CreateFilamentDto,
     user: User,
   ): Promise<Filament> {
+    const { catalogFilamentId, ...rest } = createFilamentDto;
+
+    let catalogFilament: FilamentCatalog | undefined;
+    let filamentData: Partial<Filament> = { ...rest };
+
+    if (catalogFilamentId) {
+      const found = await this.catalogRepository.findOne({
+        where: { id: catalogFilamentId },
+      });
+      if (!found) {
+        throw new BadRequestException(
+          `Catalog filament with ID ${catalogFilamentId} not found`,
+        );
+      }
+      catalogFilament = found;
+      // Copiar datos del catálogo, permitiendo override desde el DTO
+      filamentData = {
+        brand: rest.brand ?? catalogFilament.brand,
+        material: rest.material ?? catalogFilament.material,
+        color: rest.color ?? catalogFilament.color,
+        colorHex: rest.colorHex ?? catalogFilament.colorHex,
+        diameter: rest.diameter ?? catalogFilament.diameter,
+        density: rest.density ?? catalogFilament.density,
+        totalWeight: rest.totalWeight ?? catalogFilament.defaultWeight,
+        price: rest.price ?? (Number(catalogFilament.referencePrice) || undefined),
+        currency: rest.currency ?? catalogFilament.currency,
+        supplier: rest.supplier ?? catalogFilament.supplier,
+        printTempMin: rest.printTempMin ?? catalogFilament.printTempMin,
+        printTempMax: rest.printTempMax ?? catalogFilament.printTempMax,
+        bedTempMin: rest.bedTempMin ?? catalogFilament.bedTempMin,
+        bedTempMax: rest.bedTempMax ?? catalogFilament.bedTempMax,
+        imageUrl: rest.imageUrl ?? catalogFilament.imageUrl,
+        status: rest.status,
+        purchaseDate: rest.purchaseDate,
+        notes: rest.notes,
+        spoolType: rest.spoolType,
+      };
+    }
+
     const filament = this.filamentRepository.create({
-      ...createFilamentDto,
+      ...filamentData,
       remainingWeight:
-        createFilamentDto.remainingWeight ?? createFilamentDto.totalWeight,
+        createFilamentDto.remainingWeight ??
+        filamentData.totalWeight ??
+        createFilamentDto.totalWeight,
+      catalogFilament: catalogFilament ?? undefined,
       createdBy: user,
     });
 
@@ -49,6 +94,7 @@ export class FilamentsService {
     const qb: SelectQueryBuilder<Filament> = this.filamentRepository
       .createQueryBuilder('filament')
       .leftJoinAndSelect('filament.createdBy', 'user')
+      .leftJoinAndSelect('filament.catalogFilament', 'catalog')
       .where('user.id = :userId', { userId: user.id });
 
     if (material) {
@@ -96,7 +142,7 @@ export class FilamentsService {
   async findOne(id: string, user: User): Promise<Filament> {
     const filament = await this.filamentRepository.findOne({
       where: { id, createdBy: { id: user.id } },
-      relations: ['createdBy', 'printLogs'],
+      relations: ['createdBy', 'printLogs', 'catalogFilament'],
     });
 
     if (!filament) {

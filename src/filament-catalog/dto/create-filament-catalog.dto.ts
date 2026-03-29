@@ -6,30 +6,26 @@ import {
   IsOptional,
   IsPositive,
   IsString,
-  IsUUID,
+  IsUrl,
   MaxLength,
   Min,
 } from 'class-validator';
-import { MaterialType, FilamentStatus } from '../../common/enums/index.js';
+import { MaterialType } from '../../common/enums/index.js';
 
-export class CreateFilamentDto {
-  @IsUUID()
-  @IsOptional()
-  catalogFilamentId?: string;
-
+export class CreateFilamentCatalogDto {
   @IsString()
-  @IsOptional()
+  @IsNotEmpty()
   @MaxLength(100)
-  brand?: string;
+  brand!: string;
 
   @IsEnum(MaterialType)
-  @IsOptional()
-  material?: MaterialType;
+  @IsNotEmpty()
+  material!: MaterialType;
 
   @IsString()
-  @IsOptional()
+  @IsNotEmpty()
   @MaxLength(50)
-  color?: string;
+  color!: string;
 
   @IsString()
   @IsOptional()
@@ -48,22 +44,23 @@ export class CreateFilamentDto {
 
   @IsInt()
   @IsPositive()
-  totalWeight!: number;
+  @IsOptional()
+  defaultWeight?: number;
 
   @IsNumber()
   @Min(0)
   @IsOptional()
-  remainingWeight?: number;
-
-  @IsNumber()
-  @Min(0)
-  @IsOptional()
-  price?: number;
+  referencePrice?: number;
 
   @IsString()
   @IsOptional()
   @MaxLength(3)
   currency?: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(500)
+  purchaseUrl?: string;
 
   @IsString()
   @IsOptional()
@@ -86,23 +83,11 @@ export class CreateFilamentDto {
   @IsOptional()
   bedTempMax?: number;
 
-  @IsEnum(FilamentStatus)
-  @IsOptional()
-  status?: FilamentStatus;
-
-  @IsOptional()
-  purchaseDate?: Date;
-
-  @IsString()
-  @IsOptional()
-  notes?: string;
-
   @IsString()
   @IsOptional()
   imageUrl?: string;
 
   @IsString()
   @IsOptional()
-  @MaxLength(50)
-  spoolType?: string;
+  description?: string;
 }

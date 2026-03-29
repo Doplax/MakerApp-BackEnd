@@ -10,6 +10,7 @@ import {
 import { MaterialType, FilamentStatus } from '../../common/enums/index.js';
 import { User } from '../../users/entities/user.entity.js';
 import { PrintLog } from '../../print-logs/entities/print-log.entity.js';
+import { FilamentCatalog } from '../../filament-catalog/entities/filament-catalog.entity.js';
 
 @Entity('filaments')
 export class Filament {
@@ -79,6 +80,9 @@ export class Filament {
 
   @Column({ nullable: true, length: 50 })
   spoolType!: string;
+
+  @ManyToOne(() => FilamentCatalog, { eager: true, nullable: true })
+  catalogFilament!: FilamentCatalog;
 
   @ManyToOne(() => User, (user) => user.filaments, { eager: false })
   createdBy!: User;

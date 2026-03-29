@@ -13,6 +13,7 @@ import { StatisticsModule } from './statistics/statistics.module.js';
 import { SeedModule } from './seed/seed.module.js';
 import { PublicModule } from './public/public.module.js';
 import { FollowsModule } from './follows/follows.module.js';
+import { FilamentCatalogModule } from './filament-catalog/filament-catalog.module.js';
 
 @Module({
   imports: [
@@ -43,6 +44,7 @@ import { FollowsModule } from './follows/follows.module.js';
     SeedModule,
     PublicModule,
     FollowsModule,
+    FilamentCatalogModule,
   ],
   controllers: [AppController],
   providers: [AppService],
