@@ -14,11 +14,11 @@ export interface UserSeed {
 
 export const usersToSeed: UserSeed[] = [
   {
-    fullName: 'Admin MakerUpp',
-    email: 'admin@MakerUpp.com',
+    fullName: 'Admin MakerUp',
+    email: 'admin@MakerUp.com',
     password: 'admin123456',
     role: UserRole.ADMIN,
-    bio: 'Administrador de la plataforma MakerUpp. Apasionado de la impresión 3D desde 2015.',
+    bio: 'Administrador de la plataforma MakerUp. Apasionado de la impresión 3D desde 2015.',
     location: 'Madrid, España',
     latitude: 40.4168,
     longitude: -3.7038,
@@ -35,7 +35,7 @@ export const usersToSeed: UserSeed[] = [
   },
   {
     fullName: 'Maker Demo',
-    email: 'demo@MakerUpp.com',
+    email: 'demo@MakerUp.com',
     password: 'demo123456',
     role: UserRole.USER,
     bio: 'Cuenta de demostración. Impresoras FDM y resina para maquetas y miniaturas.',

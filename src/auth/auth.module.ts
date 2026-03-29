@@ -19,7 +19,7 @@ import { JwtStrategy } from './strategies/jwt.strategy.js';
       useFactory: (configService: ConfigService) => ({
         secret:
           configService.get<string>('JWT_SECRET') ||
-          'MakerUpp-super-secret-key',
+          'MakerUp-super-secret-key',
         signOptions: {
           expiresIn: (configService.get<string>('JWT_EXPIRATION') || '24h') as StringValue,
         },
