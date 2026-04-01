@@ -1,10 +1,12 @@
 import {
+  IsArray,
   IsIn,
   IsNotEmpty,
   IsNumber,
   IsOptional,
   IsPositive,
   IsString,
+  IsUUID,
   MaxLength,
 } from 'class-validator';
 
@@ -44,4 +46,9 @@ export class CreateProjectDto {
   @IsString()
   @IsOptional()
   notes?: string;
+
+  @IsArray()
+  @IsUUID('4', { each: true })
+  @IsOptional()
+  filamentIds?: string[];
 }

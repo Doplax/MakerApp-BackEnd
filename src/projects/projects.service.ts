@@ -1,10 +1,11 @@
 import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { CreateProjectDto } from './dto/create-project.dto.js';
 import { UpdateProjectDto } from './dto/update-project.dto.js';
 import { Project } from './entities/project.entity.js';
 import { User } from '../users/entities/user.entity.js';
+import { Filament } from '../filaments/entities/filament.entity.js';
 
 @Injectable()
 export class ProjectsService {
@@ -13,16 +14,28 @@ export class ProjectsService {
   constructor(
     @InjectRepository(Project)
     private readonly projectRepository: Repository<Project>,
+    @InjectRepository(Filament)
+    private readonly filamentRepository: Repository<Filament>,
   ) {}
 
   async create(
     createProjectDto: CreateProjectDto,
     user: User,
   ): Promise<Project> {
+    const { filamentIds, ...projectData } = createProjectDto;
+
     const project = this.projectRepository.create({
-      ...createProjectDto,
+      ...projectData,
       createdBy: user,
     });
+
+    if (filamentIds?.length) {
+      project.filaments = await this.filamentRepository.findBy({
+        id: In(filamentIds),
+        createdBy: { id: user.id },
+      });
+    }
+
     const saved = await this.projectRepository.save(project);
     this.logger.log(`Project created: ${saved.name} by ${user.email}`);
     return saved;
@@ -31,6 +44,7 @@ export class ProjectsService {
   async findAll(user: User): Promise<Project[]> {
     return this.projectRepository.find({
       where: { createdBy: { id: user.id } },
+      relations: ['filaments'],
       order: { createdAt: 'DESC' },
     });
   }
@@ -38,7 +52,7 @@ export class ProjectsService {
   async findOne(id: string, user: User): Promise<Project> {
     const project = await this.projectRepository.findOne({
       where: { id, createdBy: { id: user.id } },
-      relations: ['printLogs'],
+      relations: ['printLogs', 'filaments'],
     });
     if (!project) {
       throw new NotFoundException(`Project with ID ${id} not found`);
@@ -52,7 +66,19 @@ export class ProjectsService {
     user: User,
   ): Promise<Project> {
     const project = await this.findOne(id, user);
-    Object.assign(project, updateProjectDto);
+    const { filamentIds, ...projectData } = updateProjectDto;
+
+    Object.assign(project, projectData);
+
+    if (filamentIds !== undefined) {
+      project.filaments = filamentIds.length
+        ? await this.filamentRepository.findBy({
+            id: In(filamentIds),
+            createdBy: { id: user.id },
+          })
+        : [];
+    }
+
     return this.projectRepository.save(project);
   }
 

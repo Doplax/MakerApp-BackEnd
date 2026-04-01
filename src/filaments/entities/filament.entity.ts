@@ -6,11 +6,13 @@ import {
   UpdateDateColumn,
   ManyToOne,
   OneToMany,
+  ManyToMany,
 } from 'typeorm';
 import { MaterialType, FilamentStatus } from '../../common/enums/index.js';
 import { User } from '../../users/entities/user.entity.js';
 import { PrintLog } from '../../print-logs/entities/print-log.entity.js';
 import { FilamentCatalog } from '../../filament-catalog/entities/filament-catalog.entity.js';
+import { Project } from '../../projects/entities/project.entity.js';
 
 @Entity('filaments')
 export class Filament {
@@ -86,6 +88,9 @@ export class Filament {
 
   @ManyToOne(() => User, (user) => user.filaments, { eager: false })
   createdBy!: User;
+
+  @ManyToMany(() => Project, (project) => project.filaments)
+  projects!: Project[];
 
   @OneToMany(() => PrintLog, (log) => log.filament, { eager: false })
   printLogs!: PrintLog[];

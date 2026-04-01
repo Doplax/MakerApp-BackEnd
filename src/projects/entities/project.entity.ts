@@ -6,9 +6,12 @@ import {
   UpdateDateColumn,
   ManyToOne,
   OneToMany,
+  ManyToMany,
+  JoinTable,
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity.js';
 import { PrintLog } from '../../print-logs/entities/print-log.entity.js';
+import { Filament } from '../../filaments/entities/filament.entity.js';
 
 @Entity('projects')
 export class Project {
@@ -45,6 +48,10 @@ export class Project {
 
   @ManyToOne(() => User, (user) => user.projects, { eager: false })
   createdBy!: User;
+
+  @ManyToMany(() => Filament, (filament) => filament.projects, { eager: false })
+  @JoinTable({ name: 'project_filaments' })
+  filaments!: Filament[];
 
   @OneToMany(() => PrintLog, (log) => log.project, { eager: false })
   printLogs!: PrintLog[];
