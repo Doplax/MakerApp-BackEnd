@@ -72,6 +72,46 @@ export class UsersService {
     });
   }
 
+  async findByGoogleId(googleId: string): Promise<User | null> {
+    return this.userRepository.findOne({ where: { googleId } });
+  }
+
+  async findOrCreateGoogleUser(profile: {
+    googleId: string;
+    email: string;
+    fullName: string;
+    avatarUrl?: string;
+  }): Promise<User> {
+    // 1. Check if user already linked by googleId
+    let user = await this.findByGoogleId(profile.googleId);
+    if (user) return user;
+
+    // 2. Check if email already exists (link Google to existing account)
+    user = await this.userRepository.findOne({
+      where: { email: profile.email.toLowerCase() },
+    });
+
+    if (user) {
+      user.googleId = profile.googleId;
+      if (!user.avatarUrl && profile.avatarUrl) {
+        user.avatarUrl = profile.avatarUrl;
+      }
+      return this.userRepository.save(user);
+    }
+
+    // 3. Create new user (no password needed for Google users)
+    const newUser = this.userRepository.create({
+      googleId: profile.googleId,
+      email: profile.email.toLowerCase(),
+      fullName: profile.fullName,
+      avatarUrl: profile.avatarUrl,
+    });
+
+    const saved = await this.userRepository.save(newUser);
+    this.logger.log(`Google user created: ${saved.email}`);
+    return saved;
+  }
+
   async update(id: string, updateUserDto: UpdateUserDto): Promise<User> {
     const user = await this.findOne(id);
 

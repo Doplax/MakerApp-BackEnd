@@ -131,4 +131,29 @@ export class AuthService {
   async changePassword(userId: string, dto: ChangePasswordDto) {
     return this.usersService.changePassword(userId, dto);
   }
+
+  async validateGoogleUser(profile: {
+    googleId: string;
+    email: string;
+    fullName: string;
+    avatarUrl?: string;
+  }): Promise<User> {
+    return this.usersService.findOrCreateGoogleUser(profile);
+  }
+
+  googleLogin(user: User) {
+    const payload = { sub: user.id, email: user.email, role: user.role };
+    this.logger.log(`Google login: ${user.email}`);
+
+    return {
+      user: {
+        id: user.id,
+        fullName: user.fullName,
+        email: user.email,
+        role: user.role,
+        avatarUrl: user.avatarUrl,
+      },
+      accessToken: this.jwtService.sign(payload),
+    };
+  }
 }

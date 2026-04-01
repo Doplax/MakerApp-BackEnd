@@ -25,8 +25,11 @@ export class User {
   @Column({ unique: true, length: 150 })
   email!: string;
 
-  @Column({ select: false })
+  @Column({ select: false, nullable: true })
   password!: string;
+
+  @Column({ nullable: true, unique: true })
+  googleId!: string;
 
   @Column({ type: 'enum', enum: UserRole, default: UserRole.USER })
   role!: UserRole;
