@@ -83,6 +83,9 @@ export class Filament {
   @Column({ nullable: true, length: 50 })
   spoolType!: string;
 
+  @Column({ default: false })
+  isPublic!: boolean;
+
   @ManyToOne(() => FilamentCatalog, { eager: true, nullable: true })
   catalogFilament!: FilamentCatalog;
 

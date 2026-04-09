@@ -1,4 +1,5 @@
 import {
+  IsBoolean,
   IsEnum,
   IsInt,
   IsNotEmpty,
@@ -105,4 +106,8 @@ export class CreateFilamentDto {
   @IsOptional()
   @MaxLength(50)
   spoolType?: string;
+
+  @IsBoolean()
+  @IsOptional()
+  isPublic?: boolean;
 }
