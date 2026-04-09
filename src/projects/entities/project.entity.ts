@@ -31,6 +31,35 @@ export class Project {
   })
   status!: string;
 
+  // ── Kanban / pedido ────────────────────────────────────────
+  @Column({
+    type: 'enum',
+    enum: ['pending', 'in_progress', 'done'],
+    nullable: true,
+  })
+  kanbanStatus!: string | null; // null = sin pedido activo
+
+  @Column({ type: 'timestamp', nullable: true })
+  orderDeadline!: Date | null; // fecha límite del pedido
+
+  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
+  price!: number | null; // precio del proyecto/pedido (€)
+
+  // ── Visibilidad ────────────────────────────────────────────
+  @Column({ default: false })
+  isPublic!: boolean; // visible en perfil público del maker
+
+  // ── Tipo de diseño ────────────────────────────────────────
+  @Column({
+    type: 'enum',
+    enum: ['own', 'licensed'],
+    default: 'own',
+  })
+  designType!: string; // 'own' = diseño propio, 'licensed' = con licencia
+
+  @Column({ nullable: true })
+  licenseFileUrl!: string | null; // URL del archivo de licencia adjunto
+
   @Column({ nullable: true })
   imageUrl!: string;
 

@@ -1,5 +1,6 @@
 import {
   IsArray,
+  IsBoolean,
   IsIn,
   IsNotEmpty,
   IsNumber,
@@ -24,6 +25,35 @@ export class CreateProjectDto {
   @IsIn(['draft', 'in_progress', 'completed', 'archived'])
   @IsOptional()
   status?: string;
+
+  // ── Kanban ──────────────────────────────────────────────────
+  @IsString()
+  @IsIn(['pending', 'in_progress', 'done'])
+  @IsOptional()
+  kanbanStatus?: string;
+
+  @IsOptional()
+  orderDeadline?: Date;
+
+  @IsNumber()
+  @IsPositive()
+  @IsOptional()
+  price?: number;
+
+  // ── Visibilidad ─────────────────────────────────────────────
+  @IsBoolean()
+  @IsOptional()
+  isPublic?: boolean;
+
+  // ── Diseño ──────────────────────────────────────────────────
+  @IsString()
+  @IsIn(['own', 'licensed'])
+  @IsOptional()
+  designType?: string;
+
+  @IsString()
+  @IsOptional()
+  licenseFileUrl?: string;
 
   @IsString()
   @IsOptional()
