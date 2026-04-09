@@ -92,6 +92,43 @@ export class UpdateProfileDto {
   @Type(() => CustomLinkDto)
   customLinks?: { label: string; url: string }[];
 
+  // ── Nombre del taller ────────────────────────────────────────
+  @IsString()
+  @IsOptional()
+  @MaxLength(150)
+  workshopName?: string;
+
+  // ── Datos de facturación ─────────────────────────────────────
+  @IsString()
+  @IsOptional()
+  @MaxLength(150)
+  companyName?: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(20)
+  nifCif?: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(300)
+  fiscalAddress?: string;
+
+  @IsString()
+  @IsOptional()
+  invoiceLogoUrl?: string;
+
+  // ── Costes mensuales (Ajustes) ───────────────────────────────
+  @IsNumber()
+  @IsOptional()
+  @Min(0)
+  monthlyElectricityCost?: number;
+
+  @IsNumber()
+  @IsOptional()
+  @Min(0)
+  monthlyOtherFixedCosts?: number;
+
   // ── Costes y tarifas ──────────────────────────────────────
   @IsNumber()
   @IsOptional()
