@@ -65,4 +65,30 @@ export class CreatePrinterDto {
   @IsString()
   @IsOptional()
   imageUrl?: string;
+
+  @IsNumber()
+  @IsPositive()
+  @IsOptional()
+  purchasePrice?: number;
+
+  @IsInt()
+  @IsPositive()
+  @IsOptional()
+  amortizationMonths?: number;
+
+  @IsInt()
+  @IsPositive()
+  @IsOptional()
+  maintenanceSimpleHours?: number;
+
+  @IsInt()
+  @IsPositive()
+  @IsOptional()
+  maintenanceFullHours?: number;
+
+  @IsOptional()
+  lastMaintenanceSimpleAt?: Date;
+
+  @IsOptional()
+  lastMaintenanceFullAt?: Date;
 }

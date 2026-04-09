@@ -40,6 +40,10 @@ export class User {
   @Column({ nullable: true })
   avatarUrl!: string;
 
+  // ── Nombre del taller ────────────────────────────────────────
+  @Column({ nullable: true, length: 150 })
+  workshopName!: string;
+
   // ── Perfil público ──────────────────────────────────────────
   @Column({ nullable: true, length: 500 })
   bio!: string;
@@ -76,9 +80,28 @@ export class User {
   @Column({ type: 'jsonb', nullable: true, default: null })
   customLinks!: { label: string; url: string }[];
 
+  // ── Datos de facturación ─────────────────────────────────────
+  @Column({ nullable: true, length: 150 })
+  companyName!: string; // Nombre / Empresa para facturas
+
+  @Column({ nullable: true, length: 20 })
+  nifCif!: string; // NIF o CIF
+
+  @Column({ nullable: true, length: 300 })
+  fiscalAddress!: string; // Dirección fiscal
+
+  @Column({ nullable: true })
+  invoiceLogoUrl!: string; // Logo para facturas
+
   // ── Costes y tarifas del maker ─────────────────────────────
+  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
+  monthlyElectricityCost!: number; // €/mes electricidad total
+
+  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
+  monthlyOtherFixedCosts!: number; // €/mes otros costes fijos
+
   @Column({ type: 'decimal', precision: 10, scale: 4, nullable: true })
-  electricityCost!: number; // €/kWh
+  electricityCost!: number; // €/kWh (detalle avanzado)
 
   @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
   makerHourlyRate!: number; // €/hora

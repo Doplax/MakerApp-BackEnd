@@ -28,14 +28,16 @@ export class PrintersService {
     return saved;
   }
 
-  async findAll(user: User): Promise<Printer[]> {
-    return this.printerRepository.find({
+  async findAll(user: User): Promise<(Printer & { totalPrintHours: number })[]> {
+    const printers = await this.printerRepository.find({
       where: { createdBy: { id: user.id } },
+      relations: ['printLogs'],
       order: { createdAt: 'DESC' },
     });
+    return printers.map(p => this.withTotalHours(p));
   }
 
-  async findOne(id: string, user: User): Promise<Printer> {
+  async findOne(id: string, user: User): Promise<Printer & { totalPrintHours: number }> {
     const printer = await this.printerRepository.findOne({
       where: { id, createdBy: { id: user.id } },
       relations: ['printLogs'],
@@ -43,7 +45,14 @@ export class PrintersService {
     if (!printer) {
       throw new NotFoundException(`Printer with ID ${id} not found`);
     }
-    return printer;
+    return this.withTotalHours(printer);
+  }
+
+  private withTotalHours(printer: Printer): Printer & { totalPrintHours: number } {
+    const minutes = (printer.printLogs ?? [])
+      .filter(l => l.printDuration)
+      .reduce((sum, l) => sum + l.printDuration, 0);
+    return Object.assign(printer, { totalPrintHours: Math.round(minutes / 60) });
   }
 
   async update(
