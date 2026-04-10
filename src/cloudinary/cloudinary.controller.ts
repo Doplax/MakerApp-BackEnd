@@ -3,15 +3,16 @@ import {
   UseInterceptors, BadRequestException, Query,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { CloudinaryService, CloudinaryFolder } from './cloudinary.service.js';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
-import { CurrentUser } from '../auth/decorators/current-user.decorator.js';
+import { CloudinaryService } from './cloudinary.service.js';
+import type { CloudinaryFolder } from './cloudinary.service.js';
+import { AuthGuard } from '@nestjs/passport';
+import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { User } from '../users/entities/user.entity.js';
 
 const MAX_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB
 
 @Controller('upload')
-@UseGuards(JwtAuthGuard)
+@UseGuards(AuthGuard('jwt'))
 export class CloudinaryController {
   constructor(private readonly cloudinary: CloudinaryService) {}
 

@@ -2,15 +2,18 @@ import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Stripe from 'stripe';
 
+// InstanceType evita el error TS2709 "Cannot use namespace Stripe as a type"
+type StripeClient = InstanceType<typeof Stripe>;
+
 @Injectable()
 export class StripeService {
-  private readonly stripe: Stripe;
+  private readonly stripe: StripeClient;
   private readonly logger = new Logger(StripeService.name);
   private readonly feePercent: number;
 
   constructor(private readonly config: ConfigService) {
     this.stripe = new Stripe(config.getOrThrow<string>('STRIPE_SECRET_KEY'), {
-      apiVersion: '2025-03-31.basil',
+      apiVersion: '2026-03-25.dahlia',
     });
     this.feePercent = Number(config.get('STRIPE_PLATFORM_FEE_PERCENT') ?? 5);
   }
@@ -62,8 +65,7 @@ export class StripeService {
     }
 
     const fee = Math.round(amount * this.feePercent / 100);
-
-    const pi = await this.stripe.paymentIntents.create({
+    const pi  = await this.stripe.paymentIntents.create({
       amount,
       currency: currency.toLowerCase(),
       application_fee_amount: fee,
@@ -76,25 +78,27 @@ export class StripeService {
 
   // ── Webhook ──────────────────────────────────────────────────
 
-  constructWebhookEvent(payload: Buffer, signature: string): Stripe.Event {
+  constructWebhookEvent(payload: Buffer, signature: string): object {
     const secret = this.config.getOrThrow<string>('STRIPE_WEBHOOK_SECRET');
     return this.stripe.webhooks.constructEvent(payload, signature, secret);
   }
 
-  handleWebhookEvent(event: Stripe.Event): void {
-    switch (event.type) {
+  handleWebhookEvent(event: Record<string, unknown>): void {
+    const type   = event['type'] as string;
+    const object = (event['data'] as Record<string, unknown>)?.['object'] as Record<string, unknown>;
+
+    switch (type) {
       case 'payment_intent.succeeded':
-        this.logger.log(`PaymentIntent succeeded: ${(event.data.object as Stripe.PaymentIntent).id}`);
-        // TODO: marcar proyecto como pagado en base de datos
+        this.logger.log(`PaymentIntent succeeded: ${object?.['id']}`);
         break;
       case 'payment_intent.payment_failed':
-        this.logger.warn(`PaymentIntent failed: ${(event.data.object as Stripe.PaymentIntent).id}`);
+        this.logger.warn(`PaymentIntent failed: ${object?.['id']}`);
         break;
       case 'account.updated':
-        this.logger.log(`Stripe account updated: ${(event.data.object as Stripe.Account).id}`);
+        this.logger.log(`Stripe account updated: ${object?.['id']}`);
         break;
       default:
-        this.logger.debug(`Unhandled Stripe event: ${event.type}`);
+        this.logger.debug(`Unhandled Stripe event: ${type}`);
     }
   }
 }

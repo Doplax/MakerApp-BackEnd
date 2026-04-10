@@ -1,12 +1,11 @@
 import {
-  Controller, Post, Get, Body, Headers, RawBodyRequest,
+  Controller, Post, Get, Body, Headers,
   Req, UseGuards, BadRequestException, HttpCode,
 } from '@nestjs/common';
-import { Request } from 'express';
 import { StripeService } from './stripe.service.js';
 import { CreatePaymentIntentDto } from './dto/create-payment-intent.dto.js';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
-import { CurrentUser } from '../auth/decorators/current-user.decorator.js';
+import { AuthGuard } from '@nestjs/passport';
+import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { User } from '../users/entities/user.entity.js';
 import { ConfigService } from '@nestjs/config';
 
@@ -20,7 +19,7 @@ export class StripeController {
   // ── Onboarding Connect ───────────────────────────────────────
 
   @Post('connect/onboard')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(AuthGuard('jwt'))
   async onboard(@CurrentUser() user: User) {
     const accountId = await this.stripeService.createConnectAccount(user.email);
     const frontendUrl = this.config.get<string>('FRONTEND_URL', 'http://localhost:4210');
@@ -33,7 +32,7 @@ export class StripeController {
   }
 
   @Get('connect/status')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(AuthGuard('jwt'))
   async status(@CurrentUser() user: User) {
     if (!user.stripeAccountId) {
       return { connected: false };
@@ -45,7 +44,7 @@ export class StripeController {
   // ── Payment Intent ───────────────────────────────────────────
 
   @Post('payment-intent')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(AuthGuard('jwt'))
   async createPaymentIntent(
     @Body() dto: CreatePaymentIntentDto,
     @CurrentUser() buyer: User,
@@ -65,11 +64,12 @@ export class StripeController {
   @Post('webhook')
   @HttpCode(200)
   async webhook(
-    @Req() req: RawBodyRequest<Request>,
+    @Req() req: { rawBody?: Buffer },
     @Headers('stripe-signature') sig: string,
   ) {
     if (!sig) throw new BadRequestException('Missing stripe-signature header');
-    const event = this.stripeService.constructWebhookEvent(req.rawBody!, sig);
+    if (!req.rawBody) throw new BadRequestException('Raw body no disponible');
+    const event = this.stripeService.constructWebhookEvent(req.rawBody, sig) as Record<string, unknown>;
     this.stripeService.handleWebhookEvent(event);
     return { received: true };
   }

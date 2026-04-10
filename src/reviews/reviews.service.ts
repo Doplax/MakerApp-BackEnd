@@ -82,11 +82,11 @@ export class ReviewsService {
   }
 
   async averageRating(projectId: string): Promise<number> {
-    const { avg } = await this.reviewRepo
+    const row = await this.reviewRepo
       .createQueryBuilder('review')
       .select('AVG(review.rating)', 'avg')
       .where('review.projectId = :projectId', { projectId })
-      .getRawOne<{ avg: string }>();
-    return avg ? parseFloat(avg) : 0;
+      .getRawOne<{ avg: string | null }>();
+    return row?.avg ? parseFloat(row.avg) : 0;
   }
 }
