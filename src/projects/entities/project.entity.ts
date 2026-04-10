@@ -12,6 +12,7 @@ import {
 import { User } from '../../users/entities/user.entity.js';
 import { PrintLog } from '../../print-logs/entities/print-log.entity.js';
 import { Filament } from '../../filaments/entities/filament.entity.js';
+import { Review } from '../../reviews/entities/review.entity.js';
 
 @Entity('projects')
 export class Project {
@@ -84,6 +85,9 @@ export class Project {
 
   @OneToMany(() => PrintLog, (log) => log.project, { eager: false })
   printLogs!: PrintLog[];
+
+  @OneToMany(() => Review, (review) => review.project, { eager: false })
+  reviews!: Review[];
 
   @CreateDateColumn()
   createdAt!: Date;

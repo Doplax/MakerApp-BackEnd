@@ -14,6 +14,7 @@ import { SeedModule } from './seed/seed.module.js';
 import { PublicModule } from './public/public.module.js';
 import { FollowsModule } from './follows/follows.module.js';
 import { FilamentCatalogModule } from './filament-catalog/filament-catalog.module.js';
+import { ReviewsModule } from './reviews/reviews.module.js';
 
 @Module({
   imports: [
@@ -45,6 +46,7 @@ import { FilamentCatalogModule } from './filament-catalog/filament-catalog.modul
     PublicModule,
     FollowsModule,
     FilamentCatalogModule,
+    ReviewsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
