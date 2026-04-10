@@ -124,6 +124,10 @@ export class User {
   @Column({ type: 'decimal', precision: 5, scale: 2, nullable: true, default: 21 })
   vatPercent!: number; // % IVA (default 21% España)
 
+  // ── Stripe Connect ────────────────────────────────────────
+  @Column({ nullable: true, length: 50 })
+  stripeAccountId!: string; // ID de la cuenta Express de Stripe Connect
+
   @OneToMany(() => Filament, (filament) => filament.createdBy)
   filaments!: Filament[];
 

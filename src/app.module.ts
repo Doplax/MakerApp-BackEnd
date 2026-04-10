@@ -15,6 +15,7 @@ import { PublicModule } from './public/public.module.js';
 import { FollowsModule } from './follows/follows.module.js';
 import { FilamentCatalogModule } from './filament-catalog/filament-catalog.module.js';
 import { ReviewsModule } from './reviews/reviews.module.js';
+import { StripeModule } from './stripe/stripe.module.js';
 
 @Module({
   imports: [
@@ -47,6 +48,7 @@ import { ReviewsModule } from './reviews/reviews.module.js';
     FollowsModule,
     FilamentCatalogModule,
     ReviewsModule,
+    StripeModule,
   ],
   controllers: [AppController],
   providers: [AppService],
