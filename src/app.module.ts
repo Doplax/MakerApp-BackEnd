@@ -16,6 +16,7 @@ import { FollowsModule } from './follows/follows.module.js';
 import { FilamentCatalogModule } from './filament-catalog/filament-catalog.module.js';
 import { ReviewsModule } from './reviews/reviews.module.js';
 import { StripeModule } from './stripe/stripe.module.js';
+import { CloudinaryModule } from './cloudinary/cloudinary.module.js';
 
 @Module({
   imports: [
@@ -49,6 +50,7 @@ import { StripeModule } from './stripe/stripe.module.js';
     FilamentCatalogModule,
     ReviewsModule,
     StripeModule,
+    CloudinaryModule,
   ],
   controllers: [AppController],
   providers: [AppService],
