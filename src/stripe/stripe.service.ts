@@ -7,15 +7,23 @@ type StripeClient = InstanceType<typeof Stripe>;
 
 @Injectable()
 export class StripeService {
-  private readonly stripe: StripeClient;
+  private _stripe: StripeClient | null = null;
   private readonly logger = new Logger(StripeService.name);
   private readonly feePercent: number;
 
   constructor(private readonly config: ConfigService) {
-    this.stripe = new Stripe(config.getOrThrow<string>('STRIPE_SECRET_KEY'), {
-      apiVersion: '2026-03-25.dahlia',
-    });
     this.feePercent = Number(config.get('STRIPE_PLATFORM_FEE_PERCENT') ?? 5);
+  }
+
+  private get stripe(): StripeClient {
+    if (!this._stripe) {
+      const key = this.config.get<string>('STRIPE_SECRET_KEY');
+      if (!key) {
+        throw new BadRequestException('Stripe no está configurado en este entorno');
+      }
+      this._stripe = new Stripe(key, { apiVersion: '2026-03-25.dahlia' });
+    }
+    return this._stripe;
   }
 
   // ── Connect: onboarding ──────────────────────────────────────
