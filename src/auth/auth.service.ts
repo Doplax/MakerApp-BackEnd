@@ -84,48 +84,11 @@ export class AuthService {
   }
 
   async getProfile(userId: string) {
-    const user = await this.usersService.findOne(userId);
-    return {
-      id: user.id,
-      fullName: user.fullName,
-      email: user.email,
-      role: user.role,
-      avatarUrl: user.avatarUrl,
-      bio: user.bio,
-      location: user.location,
-      latitude: user.latitude,
-      longitude: user.longitude,
-      website: user.website,
-      tiktok: user.tiktok,
-      instagram: user.instagram,
-      facebook: user.facebook,
-      youtube: user.youtube,
-      twitter: user.twitter,
-      customLinks: user.customLinks,
-      createdAt: user.createdAt,
-    };
+    return this.usersService.findOne(userId);
   }
 
   async updateProfile(userId: string, dto: UpdateProfileDto) {
-    const user = await this.usersService.updateProfile(userId, dto);
-    return {
-      id: user.id,
-      fullName: user.fullName,
-      email: user.email,
-      role: user.role,
-      avatarUrl: user.avatarUrl,
-      bio: user.bio,
-      location: user.location,
-      latitude: user.latitude,
-      longitude: user.longitude,
-      website: user.website,
-      tiktok: user.tiktok,
-      instagram: user.instagram,
-      facebook: user.facebook,
-      youtube: user.youtube,
-      twitter: user.twitter,
-      customLinks: user.customLinks,
-    };
+    return this.usersService.updateProfile(userId, dto);
   }
 
   async changePassword(userId: string, dto: ChangePasswordDto) {
