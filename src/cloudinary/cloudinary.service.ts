@@ -10,15 +10,22 @@ export class CloudinaryService {
   private readonly logger = new Logger(CloudinaryService.name);
   private readonly folder: string;
 
+  private configured = false;
+
   constructor(private readonly config: ConfigService) {
     this.folder = config.get<string>('CLOUDINARY_FOLDER', 'makerup');
+  }
 
-    cloudinary.config({
-      cloud_name: config.getOrThrow<string>('CLOUDINARY_CLOUD_NAME'),
-      api_key:    config.getOrThrow<string>('CLOUDINARY_API_KEY'),
-      api_secret: config.getOrThrow<string>('CLOUDINARY_API_SECRET'),
-      secure:     true,
-    });
+  private ensureConfigured(): void {
+    if (this.configured) return;
+    const cloudName = this.config.get<string>('CLOUDINARY_CLOUD_NAME');
+    const apiKey    = this.config.get<string>('CLOUDINARY_API_KEY');
+    const apiSecret = this.config.get<string>('CLOUDINARY_API_SECRET');
+    if (!cloudName || !apiKey || !apiSecret) {
+      throw new Error('Cloudinary no está configurado en este entorno (faltan variables de entorno)');
+    }
+    cloudinary.config({ cloud_name: cloudName, api_key: apiKey, api_secret: apiSecret, secure: true });
+    this.configured = true;
   }
 
   async uploadBuffer(
@@ -26,6 +33,7 @@ export class CloudinaryService {
     subfolder: CloudinaryFolder,
     publicId?: string,
   ): Promise<UploadApiResponse> {
+    this.ensureConfigured();
     return new Promise((resolve, reject) => {
       const upload = cloudinary.uploader.upload_stream(
         {
@@ -45,6 +53,7 @@ export class CloudinaryService {
   }
 
   async deleteByUrl(url: string): Promise<void> {
+    this.ensureConfigured();
     try {
       // Extraer publicId desde la URL de Cloudinary
       const match = url.match(/\/upload\/(?:v\d+\/)?(.+)\.\w+$/);
