@@ -58,7 +58,7 @@ export class Project {
   })
   designType!: string; // 'own' = diseño propio, 'licensed' = con licencia
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   licenseFileUrl!: string | null; // URL del archivo de licencia adjunto
 
   @Column({ nullable: true })
