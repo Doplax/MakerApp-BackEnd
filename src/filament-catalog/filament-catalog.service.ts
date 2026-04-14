@@ -148,6 +148,36 @@ export class FilamentCatalogService {
     return this.catalogRepository.save(catalog);
   }
 
+  async bulkUpsert(
+    items: CreateFilamentCatalogDto[],
+  ): Promise<{ created: number; updated: number; total: number }> {
+    let created = 0;
+    let updated = 0;
+
+    for (const dto of items) {
+      const existing = await this.catalogRepository.findOne({
+        where: {
+          brand: dto.brand,
+          material: dto.material,
+          color: dto.color,
+        },
+      });
+
+      if (existing) {
+        Object.assign(existing, dto);
+        await this.catalogRepository.save(existing);
+        updated++;
+      } else {
+        const entity = this.catalogRepository.create(dto);
+        await this.catalogRepository.save(entity);
+        created++;
+      }
+    }
+
+    this.logger.log(`Bulk upsert: ${created} created, ${updated} updated`);
+    return { created, updated, total: items.length };
+  }
+
   async remove(id: string): Promise<{ message: string }> {
     const catalog = await this.findOne(id);
     await this.catalogRepository.remove(catalog);

@@ -31,6 +31,13 @@ export class FilamentCatalogController {
     return this.catalogService.create(dto);
   }
 
+  @Post('bulk')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN)
+  bulkUpsert(@Body() body: { items: CreateFilamentCatalogDto[] }) {
+    return this.catalogService.bulkUpsert(body.items ?? []);
+  }
+
   @Get()
   findAll(@Query() filterDto: FilterFilamentCatalogDto) {
     return this.catalogService.findAll(filterDto);
