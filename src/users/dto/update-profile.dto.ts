@@ -172,4 +172,9 @@ export class UpdateProfileDto {
   @Min(0)
   @Max(100)
   vatPercent?: number;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(50)
+  mapStyle?: string;
 }

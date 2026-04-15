@@ -76,6 +76,10 @@ export class User {
   @Column({ nullable: true, length: 150 })
   twitter!: string;
 
+  // ── Estilo de mapa preferido ───────────────────────────────
+  @Column({ nullable: true, length: 50 })
+  mapStyle!: string;
+
   // ── Links adicionales (JSON array) ─────────────────────────
   @Column({ type: 'jsonb', nullable: true, default: null })
   customLinks!: { label: string; url: string }[];
