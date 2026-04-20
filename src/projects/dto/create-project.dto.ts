@@ -81,4 +81,8 @@ export class CreateProjectDto {
   @IsUUID('4', { each: true })
   @IsOptional()
   filamentIds?: string[];
+
+  @IsUUID('4')
+  @IsOptional()
+  printerId?: string;
 }

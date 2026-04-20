@@ -13,6 +13,7 @@ import { User } from '../../users/entities/user.entity.js';
 import { PrintLog } from '../../print-logs/entities/print-log.entity.js';
 import { Filament } from '../../filaments/entities/filament.entity.js';
 import { Review } from '../../reviews/entities/review.entity.js';
+import { Printer } from '../../printers/entities/printer.entity.js';
 
 @Entity('projects')
 export class Project {
@@ -78,6 +79,9 @@ export class Project {
 
   @ManyToOne(() => User, (user) => user.projects, { eager: false })
   createdBy!: User;
+
+  @ManyToOne(() => Printer, { eager: true, nullable: true })
+  printer!: Printer | null;
 
   @ManyToMany(() => Filament, (filament) => filament.projects, { eager: false })
   @JoinTable({ name: 'project_filaments' })
