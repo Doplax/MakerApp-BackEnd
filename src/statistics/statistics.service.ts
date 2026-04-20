@@ -123,10 +123,12 @@ export class StatisticsService {
       ? await this.filamentRepository.findByIds(topFilamentIds)
       : [];
 
-    const topFilaments = topFilamentRows.map((r: any) => ({
-      filament: topFilamentEntities.find((f) => f.id === r.filamentId),
-      totalUsed: parseFloat(r.totalUsed),
-    }));
+    const topFilaments = topFilamentRows
+      .map((r: any) => ({
+        filament: topFilamentEntities.find((f) => f.id === r.filamentId),
+        totalUsed: parseFloat(r.totalUsed),
+      }))
+      .filter((entry) => entry.filament !== undefined);
 
     // Construir distribuciones
     const materialDistribution: Record<string, number> = {};
