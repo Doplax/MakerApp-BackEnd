@@ -24,131 +24,149 @@ export class StatisticsService {
   async getDashboardStats(user: User) {
     const userId = user.id;
 
-    // Estadísticas de filamentos
-    const filaments = await this.filamentRepository.find({
-      where: { createdBy: { id: userId } },
-    });
+    const [
+      filamentAgg,
+      materialRows,
+      statusRows,
+      colorRows,
+      lowStockFilaments,
+      printLogAgg,
+      topFilamentRows,
+      totalPrinters,
+      totalProjects,
+      recentPrintLogs,
+    ] = await Promise.all([
+      // Agregados de filamentos
+      this.filamentRepository
+        .createQueryBuilder('f')
+        .select('COUNT(*)', 'totalSpools')
+        .addSelect('COALESCE(SUM(f.remainingWeight), 0)', 'totalWeightAvailable')
+        .addSelect('COALESCE(SUM(f.totalWeight), 0)', 'totalWeightOriginal')
+        .addSelect('COALESCE(SUM(f.price), 0)', 'totalSpent')
+        .where('f.createdBy = :userId', { userId })
+        .getRawOne(),
 
-    const totalSpools = filaments.length;
-    const totalWeightAvailable = filaments.reduce(
-      (sum, f) => sum + f.remainingWeight,
-      0,
-    );
-    const totalWeightOriginal = filaments.reduce(
-      (sum, f) => sum + f.totalWeight,
-      0,
-    );
-    const totalSpent = filaments.reduce(
-      (sum, f) => sum + (Number(f.price) || 0),
-      0,
-    );
-    const lowStockFilaments = filaments.filter(
-      (f) =>
-        f.status === FilamentStatus.LOW_STOCK ||
-        f.status === FilamentStatus.EMPTY,
-    );
+      // Distribución por material
+      this.filamentRepository
+        .createQueryBuilder('f')
+        .select('f.material', 'material')
+        .addSelect('COUNT(*)', 'count')
+        .where('f.createdBy = :userId', { userId })
+        .groupBy('f.material')
+        .getRawMany(),
 
-    // Distribución por material
+      // Distribución por estado
+      this.filamentRepository
+        .createQueryBuilder('f')
+        .select('f.status', 'status')
+        .addSelect('COUNT(*)', 'count')
+        .where('f.createdBy = :userId', { userId })
+        .groupBy('f.status')
+        .getRawMany(),
+
+      // Distribución por color
+      this.filamentRepository
+        .createQueryBuilder('f')
+        .select('f.color', 'color')
+        .addSelect('MIN(f.colorHex)', 'colorHex')
+        .addSelect('COUNT(*)', 'count')
+        .where('f.createdBy = :userId', { userId })
+        .groupBy('f.color')
+        .getRawMany(),
+
+      // Filamentos con stock bajo/vacío
+      this.filamentRepository.find({
+        where: [
+          { createdBy: { id: userId }, status: FilamentStatus.LOW_STOCK },
+          { createdBy: { id: userId }, status: FilamentStatus.EMPTY },
+        ],
+        select: ['id', 'brand', 'color', 'colorHex', 'material', 'remainingWeight', 'totalWeight', 'status'],
+      }),
+
+      // Agregados de logs de impresión
+      this.printLogRepository
+        .createQueryBuilder('pl')
+        .select('COUNT(*)', 'totalPrints')
+        .addSelect('COALESCE(SUM(pl.weightUsed), 0)', 'totalWeightUsed')
+        .addSelect('COALESCE(SUM(pl.printDuration), 0)', 'totalPrintTime')
+        .where('pl.createdBy = :userId', { userId })
+        .getRawOne(),
+
+      // Top 5 filamentos por peso consumido
+      this.printLogRepository
+        .createQueryBuilder('pl')
+        .select('pl.filamentId', 'filamentId')
+        .addSelect('SUM(pl.weightUsed)', 'totalUsed')
+        .where('pl.createdBy = :userId', { userId })
+        .andWhere('pl.filamentId IS NOT NULL')
+        .groupBy('pl.filamentId')
+        .orderBy('SUM(pl.weightUsed)', 'DESC')
+        .limit(5)
+        .getRawMany(),
+
+      // Contadores de impresoras y proyectos
+      this.printerRepository.count({ where: { createdBy: { id: userId } } }),
+      this.projectRepository.count({ where: { createdBy: { id: userId } } }),
+
+      // Últimas 5 impresiones con relaciones
+      this.printLogRepository.find({
+        where: { createdBy: { id: userId } },
+        relations: ['filament', 'printer', 'project'],
+        order: { createdAt: 'DESC' },
+        take: 5,
+      }),
+    ]);
+
+    // Resolver entidades de filamentos para topFilaments
+    const topFilamentIds: string[] = topFilamentRows.map((r: any) => r.filamentId);
+    const topFilamentEntities = topFilamentIds.length
+      ? await this.filamentRepository.findByIds(topFilamentIds)
+      : [];
+
+    const topFilaments = topFilamentRows.map((r: any) => ({
+      filament: topFilamentEntities.find((f) => f.id === r.filamentId),
+      totalUsed: parseFloat(r.totalUsed),
+    }));
+
+    // Construir distribuciones
     const materialDistribution: Record<string, number> = {};
-    filaments.forEach((f) => {
-      materialDistribution[f.material] =
-        (materialDistribution[f.material] || 0) + 1;
-    });
+    materialRows.forEach((r: any) => { materialDistribution[r.material] = parseInt(r.count); });
 
-    // Distribución por estado
     const statusDistribution: Record<string, number> = {};
-    filaments.forEach((f) => {
-      statusDistribution[f.status] = (statusDistribution[f.status] || 0) + 1;
-    });
+    statusRows.forEach((r: any) => { statusDistribution[r.status] = parseInt(r.count); });
 
-    // Distribución por color
-    const colorDistribution: Record<
-      string,
-      { count: number; hex: string | null }
-    > = {};
-    filaments.forEach((f) => {
-      if (!colorDistribution[f.color]) {
-        colorDistribution[f.color] = { count: 0, hex: f.colorHex };
-      }
-      colorDistribution[f.color].count++;
-    });
-
-    // Print logs
-    const printLogs = await this.printLogRepository.find({
-      where: { createdBy: { id: userId } },
-    });
-
-    const totalPrints = printLogs.length;
-    const totalWeightUsed = printLogs.reduce((sum, l) => sum + l.weightUsed, 0);
-    const totalPrintTime = printLogs.reduce(
-      (sum, l) => sum + (l.printDuration || 0),
-      0,
-    );
-
-    // Contadores adicionales
-    const totalPrinters = await this.printerRepository.count({
-      where: { createdBy: { id: userId } },
-    });
-    const totalProjects = await this.projectRepository.count({
-      where: { createdBy: { id: userId } },
-    });
-
-    // Últimas impresiones
-    const recentPrintLogs = await this.printLogRepository.find({
-      where: { createdBy: { id: userId } },
-      relations: ['filament', 'printer', 'project'],
-      order: { createdAt: 'DESC' },
-      take: 5,
-    });
-
-    // Top filamentos más usados (por peso consumido)
-    const filamentUsage: Record<
-      string,
-      { filament: Filament; totalUsed: number }
-    > = {};
-    printLogs.forEach((log) => {
-      const fId = log.filament?.id;
-      if (fId) {
-        if (!filamentUsage[fId]) {
-          filamentUsage[fId] = { filament: log.filament, totalUsed: 0 };
-        }
-        filamentUsage[fId].totalUsed += log.weightUsed;
-      }
-    });
-
-    const topFilaments = Object.values(filamentUsage)
-      .sort((a, b) => b.totalUsed - a.totalUsed)
-      .slice(0, 5);
+    const colorDistribution: Record<string, { count: number; hex: string | null }> = {};
+    colorRows.forEach((r: any) => { colorDistribution[r.color] = { count: parseInt(r.count), hex: r.colorHex }; });
 
     return {
       overview: {
-        totalSpools,
-        totalWeightAvailable: Math.round(totalWeightAvailable),
-        totalWeightOriginal: Math.round(totalWeightOriginal),
-        totalWeightUsed: Math.round(totalWeightUsed),
-        totalSpent: Math.round(totalSpent * 100) / 100,
-        totalPrints,
-        totalPrintTime: Math.round(totalPrintTime),
+        totalSpools:           parseInt(filamentAgg.totalSpools),
+        totalWeightAvailable:  Math.round(parseFloat(filamentAgg.totalWeightAvailable)),
+        totalWeightOriginal:   Math.round(parseFloat(filamentAgg.totalWeightOriginal)),
+        totalWeightUsed:       Math.round(parseFloat(printLogAgg.totalWeightUsed)),
+        totalSpent:            Math.round(parseFloat(filamentAgg.totalSpent) * 100) / 100,
+        totalPrints:           parseInt(printLogAgg.totalPrints),
+        totalPrintTime:        Math.round(parseFloat(printLogAgg.totalPrintTime)),
         totalPrinters,
         totalProjects,
       },
       alerts: {
-        lowStockCount: lowStockFilaments.length,
+        lowStockCount:     lowStockFilaments.length,
         lowStockFilaments: lowStockFilaments.map((f) => ({
-          id: f.id,
-          brand: f.brand,
-          color: f.color,
-          colorHex: f.colorHex,
-          material: f.material,
+          id:              f.id,
+          brand:           f.brand,
+          color:           f.color,
+          colorHex:        f.colorHex,
+          material:        f.material,
           remainingWeight: f.remainingWeight,
-          totalWeight: f.totalWeight,
-          status: f.status,
+          totalWeight:     f.totalWeight,
+          status:          f.status,
         })),
       },
       distributions: {
         byMaterial: materialDistribution,
-        byStatus: statusDistribution,
-        byColor: colorDistribution,
+        byStatus:   statusDistribution,
+        byColor:    colorDistribution,
       },
       recentActivity: recentPrintLogs,
       topFilaments,
