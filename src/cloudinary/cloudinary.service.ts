@@ -1,9 +1,18 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { v2 as cloudinary, UploadApiResponse, UploadApiErrorResponse } from 'cloudinary';
+import {
+  v2 as cloudinary,
+  UploadApiResponse,
+  UploadApiErrorResponse,
+} from 'cloudinary';
 import { Readable } from 'stream';
 
-export type CloudinaryFolder = 'avatars' | 'projects' | 'printers' | 'filaments' | 'invoices';
+export type CloudinaryFolder =
+  | 'avatars'
+  | 'projects'
+  | 'printers'
+  | 'filaments'
+  | 'invoices';
 
 @Injectable()
 export class CloudinaryService {
@@ -19,12 +28,19 @@ export class CloudinaryService {
   private ensureConfigured(): void {
     if (this.configured) return;
     const cloudName = this.config.get<string>('CLOUDINARY_CLOUD_NAME');
-    const apiKey    = this.config.get<string>('CLOUDINARY_API_KEY');
+    const apiKey = this.config.get<string>('CLOUDINARY_API_KEY');
     const apiSecret = this.config.get<string>('CLOUDINARY_API_SECRET');
     if (!cloudName || !apiKey || !apiSecret) {
-      throw new Error('Cloudinary no está configurado en este entorno (faltan variables de entorno)');
+      throw new Error(
+        'Cloudinary no está configurado en este entorno (faltan variables de entorno)',
+      );
     }
-    cloudinary.config({ cloud_name: cloudName, api_key: apiKey, api_secret: apiSecret, secure: true });
+    cloudinary.config({
+      cloud_name: cloudName,
+      api_key: apiKey,
+      api_secret: apiSecret,
+      secure: true,
+    });
     this.configured = true;
   }
 
@@ -37,14 +53,20 @@ export class CloudinaryService {
     return new Promise((resolve, reject) => {
       const upload = cloudinary.uploader.upload_stream(
         {
-          folder:          `${this.folder}/${subfolder}`,
-          public_id:       publicId,
-          resource_type:   'image',
+          folder: `${this.folder}/${subfolder}`,
+          public_id: publicId,
+          resource_type: 'image',
           allowed_formats: ['jpg', 'jpeg', 'png', 'webp', 'gif'],
-          transformation:  [{ width: 1200, crop: 'limit', quality: 'auto:good' }],
+          transformation: [
+            { width: 1200, crop: 'limit', quality: 'auto:good' },
+          ],
         },
-        (error: UploadApiErrorResponse | undefined, result: UploadApiResponse | undefined) => {
-          if (error || !result) return reject(error ?? new Error('Upload failed'));
+        (
+          error: UploadApiErrorResponse | undefined,
+          result: UploadApiResponse | undefined,
+        ) => {
+          if (error || !result)
+            return reject(error ?? new Error('Upload failed'));
           resolve(result);
         },
       );

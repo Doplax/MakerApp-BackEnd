@@ -25,7 +25,9 @@ export class Review {
   @ManyToOne(() => User, { eager: true, onDelete: 'CASCADE' })
   author!: User;
 
-  @ManyToOne(() => Project, (project) => project.reviews, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Project, (project) => project.reviews, {
+    onDelete: 'CASCADE',
+  })
   project!: Project;
 
   @CreateDateColumn()

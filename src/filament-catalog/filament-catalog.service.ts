@@ -25,14 +25,7 @@ export class FilamentCatalogService {
   }
 
   async findAll(filterDto: FilterFilamentCatalogDto) {
-    const {
-      page = 1,
-      limit = 50,
-      material,
-      color,
-      brand,
-      search,
-    } = filterDto;
+    const { page = 1, limit = 50, material, color, brand, search } = filterDto;
 
     const qb: SelectQueryBuilder<FilamentCatalog> = this.catalogRepository
       .createQueryBuilder('catalog')
@@ -79,17 +72,10 @@ export class FilamentCatalogService {
   }
 
   async findAllAdmin(filterDto: FilterFilamentCatalogDto) {
-    const {
-      page = 1,
-      limit = 50,
-      material,
-      color,
-      brand,
-      search,
-    } = filterDto;
+    const { page = 1, limit = 50, material, color, brand, search } = filterDto;
 
-    const qb: SelectQueryBuilder<FilamentCatalog> = this.catalogRepository
-      .createQueryBuilder('catalog');
+    const qb: SelectQueryBuilder<FilamentCatalog> =
+      this.catalogRepository.createQueryBuilder('catalog');
 
     if (material) {
       qb.andWhere('catalog.material = :material', { material });

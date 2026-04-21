@@ -36,10 +36,10 @@ const googleStrategyProvider: Provider = {
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
         secret:
-          configService.get<string>('JWT_SECRET') ||
-          'MakerUp-super-secret-key',
+          configService.get<string>('JWT_SECRET') || 'MakerUp-super-secret-key',
         signOptions: {
-          expiresIn: (configService.get<string>('JWT_EXPIRATION') || '24h') as StringValue,
+          expiresIn: (configService.get<string>('JWT_EXPIRATION') ||
+            '24h') as StringValue,
         },
       }),
     }),

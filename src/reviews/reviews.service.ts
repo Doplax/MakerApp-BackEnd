@@ -55,7 +55,11 @@ export class ReviewsService {
     });
   }
 
-  async update(id: string, dto: UpdateReviewDto, author: User): Promise<Review> {
+  async update(
+    id: string,
+    dto: UpdateReviewDto,
+    author: User,
+  ): Promise<Review> {
     const review = await this.reviewRepo.findOne({
       where: { id },
       relations: ['author'],

@@ -17,7 +17,10 @@ export class FollowsService {
     private readonly userRepo: Repository<User>,
   ) {}
 
-  async follow(followerId: string, followingId: string): Promise<{ message: string }> {
+  async follow(
+    followerId: string,
+    followingId: string,
+  ): Promise<{ message: string }> {
     if (followerId === followingId) {
       throw new BadRequestException('No puedes seguirte a ti mismo');
     }
@@ -47,7 +50,10 @@ export class FollowsService {
     return { message: 'Ahora sigues a este maker' };
   }
 
-  async unfollow(followerId: string, followingId: string): Promise<{ message: string }> {
+  async unfollow(
+    followerId: string,
+    followingId: string,
+  ): Promise<{ message: string }> {
     const result = await this.followRepo.delete({
       follower: { id: followerId },
       following: { id: followingId },
@@ -70,7 +76,16 @@ export class FollowsService {
     return count > 0;
   }
 
-  async getFollowing(userId: string): Promise<{ id: string; fullName: string; avatarUrl: string | null; location: string | null }[]> {
+  async getFollowing(
+    userId: string,
+  ): Promise<
+    {
+      id: string;
+      fullName: string;
+      avatarUrl: string | null;
+      location: string | null;
+    }[]
+  > {
     const follows = await this.followRepo.find({
       where: { follower: { id: userId } },
       relations: ['following'],

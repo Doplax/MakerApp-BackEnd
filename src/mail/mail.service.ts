@@ -12,16 +12,19 @@ export interface SendMailOptions {
 
 @Injectable()
 export class MailService {
-  private readonly logger     = new Logger(MailService.name);
+  private readonly logger = new Logger(MailService.name);
   private readonly transporter: Transporter;
-  private readonly from:        string;
+  private readonly from: string;
 
   constructor(private readonly config: ConfigService) {
-    this.from = config.get<string>('MAIL_FROM', '"MΛkerUp" <noreply@makerup.app>');
+    this.from = config.get<string>(
+      'MAIL_FROM',
+      '"MΛkerUp" <noreply@makerup.app>',
+    );
 
     this.transporter = nodemailer.createTransport({
-      host:   config.get<string>('MAIL_HOST',   'smtp.gmail.com'),
-      port:   Number(config.get<string>('MAIL_PORT', '587')),
+      host: config.get<string>('MAIL_HOST', 'smtp.gmail.com'),
+      port: Number(config.get<string>('MAIL_PORT', '587')),
       secure: config.get<string>('MAIL_SECURE', 'false') === 'true',
       auth: {
         user: config.get<string>('MAIL_USER'),
@@ -33,11 +36,11 @@ export class MailService {
   async send(options: SendMailOptions): Promise<void> {
     try {
       await this.transporter.sendMail({
-        from:    this.from,
-        to:      Array.isArray(options.to) ? options.to.join(', ') : options.to,
+        from: this.from,
+        to: Array.isArray(options.to) ? options.to.join(', ') : options.to,
         subject: options.subject,
-        html:    options.html,
-        text:    options.text,
+        html: options.html,
+        text: options.text,
       });
       this.logger.log(`Email enviado a ${options.to}: ${options.subject}`);
     } catch (err) {
@@ -141,8 +144,15 @@ export class MailService {
     `);
   }
 
-  private orderConfirmationTemplate(makerName: string, projectName: string, price: number): string {
-    const formatted = new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(price);
+  private orderConfirmationTemplate(
+    makerName: string,
+    projectName: string,
+    price: number,
+  ): string {
+    const formatted = new Intl.NumberFormat('es-ES', {
+      style: 'currency',
+      currency: 'EUR',
+    }).format(price);
     return this.baseTemplate(`
       <h2>Pedido confirmado</h2>
       <p>Hola, <strong>${makerName}</strong> ha confirmado tu pedido.</p>

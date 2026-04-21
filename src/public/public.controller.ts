@@ -1,4 +1,10 @@
-import { Controller, Get, Param, ParseUUIDPipe, NotFoundException } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  NotFoundException,
+} from '@nestjs/common';
 import { UsersService } from '../users/users.service.js';
 import { PublicMakerProfileDto } from './dto/public-maker-profile.dto.js';
 

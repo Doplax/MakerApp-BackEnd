@@ -1,6 +1,11 @@
 import {
-  Controller, Post, UploadedFile, UseGuards,
-  UseInterceptors, BadRequestException, Query,
+  Controller,
+  Post,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors,
+  BadRequestException,
+  Query,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { CloudinaryService } from './cloudinary.service.js';
@@ -22,7 +27,10 @@ export class CloudinaryController {
       limits: { fileSize: MAX_SIZE_BYTES },
       fileFilter: (_req, file, cb) => {
         if (!file.mimetype.startsWith('image/')) {
-          return cb(new BadRequestException('Solo se permiten imágenes'), false);
+          return cb(
+            new BadRequestException('Solo se permiten imágenes'),
+            false,
+          );
         }
         cb(null, true);
       },
@@ -35,20 +43,32 @@ export class CloudinaryController {
   ) {
     if (!file) throw new BadRequestException('No se recibió ningún archivo');
 
-    const validFolders: CloudinaryFolder[] = ['avatars', 'projects', 'printers', 'filaments', 'invoices'];
+    const validFolders: CloudinaryFolder[] = [
+      'avatars',
+      'projects',
+      'printers',
+      'filaments',
+      'invoices',
+    ];
     if (!validFolders.includes(folder)) {
-      throw new BadRequestException(`Carpeta inválida. Válidas: ${validFolders.join(', ')}`);
+      throw new BadRequestException(
+        `Carpeta inválida. Válidas: ${validFolders.join(', ')}`,
+      );
     }
 
     const publicId = `${folder}-${user.id}-${Date.now()}`;
-    const result   = await this.cloudinary.uploadBuffer(file.buffer, folder, publicId);
+    const result = await this.cloudinary.uploadBuffer(
+      file.buffer,
+      folder,
+      publicId,
+    );
 
     return {
-      url:      result.secure_url,
+      url: result.secure_url,
       publicId: result.public_id,
-      width:    result.width,
-      height:   result.height,
-      bytes:    result.bytes,
+      width: result.width,
+      height: result.height,
+      bytes: result.bytes,
     };
   }
 }

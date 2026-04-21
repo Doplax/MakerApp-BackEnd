@@ -19,7 +19,9 @@ export class StripeService {
     if (!this._stripe) {
       const key = this.config.get<string>('STRIPE_SECRET_KEY');
       if (!key) {
-        throw new BadRequestException('Stripe no está configurado en este entorno');
+        throw new BadRequestException(
+          'Stripe no está configurado en este entorno',
+        );
       }
       this._stripe = new Stripe(key, { apiVersion: '2026-03-25.dahlia' });
     }
@@ -32,12 +34,19 @@ export class StripeService {
     const account = await this.stripe.accounts.create({
       type: 'express',
       email,
-      capabilities: { card_payments: { requested: true }, transfers: { requested: true } },
+      capabilities: {
+        card_payments: { requested: true },
+        transfers: { requested: true },
+      },
     });
     return account.id;
   }
 
-  async createAccountLink(accountId: string, returnUrl: string, refreshUrl: string): Promise<string> {
+  async createAccountLink(
+    accountId: string,
+    returnUrl: string,
+    refreshUrl: string,
+  ): Promise<string> {
     const link = await this.stripe.accountLinks.create({
       account: accountId,
       refresh_url: refreshUrl,
@@ -55,8 +64,8 @@ export class StripeService {
     const account = await this.stripe.accounts.retrieve(accountId);
     return {
       detailsSubmitted: account.details_submitted,
-      chargesEnabled:   account.charges_enabled,
-      payoutsEnabled:   account.payouts_enabled,
+      chargesEnabled: account.charges_enabled,
+      payoutsEnabled: account.payouts_enabled,
     };
   }
 
@@ -69,11 +78,13 @@ export class StripeService {
     metadata: Record<string, string> = {},
   ): Promise<{ clientSecret: string; paymentIntentId: string }> {
     if (!makerStripeAccountId) {
-      throw new BadRequestException('El maker no tiene cuenta de Stripe configurada');
+      throw new BadRequestException(
+        'El maker no tiene cuenta de Stripe configurada',
+      );
     }
 
-    const fee = Math.round(amount * this.feePercent / 100);
-    const pi  = await this.stripe.paymentIntents.create({
+    const fee = Math.round((amount * this.feePercent) / 100);
+    const pi = await this.stripe.paymentIntents.create({
       amount,
       currency: currency.toLowerCase(),
       application_fee_amount: fee,
@@ -92,8 +103,10 @@ export class StripeService {
   }
 
   handleWebhookEvent(event: Record<string, unknown>): void {
-    const type   = event['type'] as string;
-    const object = (event['data'] as Record<string, unknown>)?.['object'] as Record<string, unknown>;
+    const type = event['type'] as string;
+    const object = (event['data'] as Record<string, unknown>)?.[
+      'object'
+    ] as Record<string, unknown>;
 
     switch (type) {
       case 'payment_intent.succeeded':

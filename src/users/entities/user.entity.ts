@@ -125,7 +125,13 @@ export class User {
   @Column({ default: true })
   chargesVat!: boolean; // ¿Factura IVA?
 
-  @Column({ type: 'decimal', precision: 5, scale: 2, nullable: true, default: 21 })
+  @Column({
+    type: 'decimal',
+    precision: 5,
+    scale: 2,
+    nullable: true,
+    default: 21,
+  })
   vatPercent!: number; // % IVA (default 21% España)
 
   // ── Stripe Connect ────────────────────────────────────────

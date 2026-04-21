@@ -1,6 +1,13 @@
 import {
-  Controller, Post, Get, Body, Headers,
-  Req, UseGuards, BadRequestException, HttpCode,
+  Controller,
+  Post,
+  Get,
+  Body,
+  Headers,
+  Req,
+  UseGuards,
+  BadRequestException,
+  HttpCode,
 } from '@nestjs/common';
 import { StripeService } from './stripe.service.js';
 import { CreatePaymentIntentDto } from './dto/create-payment-intent.dto.js';
@@ -22,7 +29,10 @@ export class StripeController {
   @UseGuards(AuthGuard('jwt'))
   async onboard(@CurrentUser() user: User) {
     const accountId = await this.stripeService.createConnectAccount(user.email);
-    const frontendUrl = this.config.get<string>('FRONTEND_URL', 'http://localhost:4210');
+    const frontendUrl = this.config.get<string>(
+      'FRONTEND_URL',
+      'http://localhost:4210',
+    );
     const link = await this.stripeService.createAccountLink(
       accountId,
       `${frontendUrl}/settings?stripe=success`,
@@ -69,7 +79,10 @@ export class StripeController {
   ) {
     if (!sig) throw new BadRequestException('Missing stripe-signature header');
     if (!req.rawBody) throw new BadRequestException('Raw body no disponible');
-    const event = this.stripeService.constructWebhookEvent(req.rawBody, sig) as Record<string, unknown>;
+    const event = this.stripeService.constructWebhookEvent(
+      req.rawBody,
+      sig,
+    ) as Record<string, unknown>;
     this.stripeService.handleWebhookEvent(event);
     return { received: true };
   }

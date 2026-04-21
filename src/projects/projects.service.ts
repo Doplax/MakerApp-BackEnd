@@ -7,6 +7,8 @@ import { Project } from './entities/project.entity.js';
 import { User } from '../users/entities/user.entity.js';
 import { Filament } from '../filaments/entities/filament.entity.js';
 import { Printer } from '../printers/entities/printer.entity.js';
+import { PrintLog } from '../print-logs/entities/print-log.entity.js';
+import { PrintStatus } from '../common/enums/index.js';
 
 @Injectable()
 export class ProjectsService {
@@ -19,6 +21,8 @@ export class ProjectsService {
     private readonly filamentRepository: Repository<Filament>,
     @InjectRepository(Printer)
     private readonly printerRepository: Repository<Printer>,
+    @InjectRepository(PrintLog)
+    private readonly printLogRepository: Repository<PrintLog>,
   ) {}
 
   async create(
@@ -75,6 +79,8 @@ export class ProjectsService {
     user: User,
   ): Promise<Project> {
     const project = await this.findOne(id, user);
+    const oldKanbanStatus = project.kanbanStatus;
+
     const { filamentIds, printerId, ...projectData } = updateProjectDto;
 
     Object.assign(project, projectData);
@@ -97,6 +103,66 @@ export class ProjectsService {
             createdBy: { id: user.id },
           })
         : [];
+    }
+
+    // Gestionar cambios de estado del kanban (Impresión y horas)
+    const newKanbanStatus = project.kanbanStatus;
+
+    if (
+      oldKanbanStatus !== 'in_progress' &&
+      newKanbanStatus === 'in_progress' &&
+      project.printer
+    ) {
+      // Pasa a imprimiendo
+      project.printer.status = 'printing';
+      await this.printerRepository.save(project.printer);
+    }
+
+    if (
+      oldKanbanStatus === 'in_progress' &&
+      newKanbanStatus === 'pending' &&
+      project.printer
+    ) {
+      project.printer.status = 'idle';
+      await this.printerRepository.save(project.printer);
+    }
+
+    if (
+      oldKanbanStatus !== 'done' &&
+      newKanbanStatus === 'done' &&
+      project.printer
+    ) {
+      // Pasa a entregado (termina impresión o entrega final)
+      project.printer.status = 'idle';
+      await this.printerRepository.save(project.printer);
+
+      // Crear log de impresión automático si tenemos datos base
+      if (project.estimatedTime || project.estimatedWeight) {
+        const filament = project.filaments?.[0]; // Toma el primero si existe
+        if (filament) {
+          const printLog = this.printLogRepository.create({
+            name: `Impresión: ${project.name}`,
+            description: 'Log automático generado al completar proyecto',
+            weightUsed: project.estimatedWeight || 0,
+            printDuration: project.estimatedTime || 0,
+            status: PrintStatus.COMPLETED,
+            createdBy: user,
+            printer: project.printer,
+            project: project,
+            filament: filament,
+          });
+          await this.printLogRepository.save(printLog);
+
+          // Descontar filamento
+          if (printLog.weightUsed > 0) {
+            filament.remainingWeight = Math.max(
+              0,
+              filament.remainingWeight - printLog.weightUsed,
+            );
+            await this.filamentRepository.save(filament);
+          }
+        }
+      }
     }
 
     return this.projectRepository.save(project);

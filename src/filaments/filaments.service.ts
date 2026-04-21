@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  Logger,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, SelectQueryBuilder } from 'typeorm';
 import { CreateFilamentDto } from './dto/create-filament.dto.js';
@@ -48,7 +53,8 @@ export class FilamentsService {
         diameter: rest.diameter ?? catalogFilament.diameter,
         density: rest.density ?? catalogFilament.density,
         totalWeight: rest.totalWeight ?? catalogFilament.defaultWeight,
-        price: rest.price ?? (Number(catalogFilament.referencePrice) || undefined),
+        price:
+          rest.price ?? (Number(catalogFilament.referencePrice) || undefined),
         currency: rest.currency ?? catalogFilament.currency,
         supplier: rest.supplier ?? catalogFilament.supplier,
         printTempMin: rest.printTempMin ?? catalogFilament.printTempMin,

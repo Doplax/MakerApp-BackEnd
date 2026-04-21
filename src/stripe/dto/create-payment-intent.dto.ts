@@ -1,4 +1,10 @@
-import { IsInt, IsPositive, IsUUID, IsOptional, IsString } from 'class-validator';
+import {
+  IsInt,
+  IsPositive,
+  IsUUID,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 
 export class CreatePaymentIntentDto {
   /** ID del proyecto a pagar */

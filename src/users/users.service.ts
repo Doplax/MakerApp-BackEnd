@@ -164,11 +164,27 @@ export class UsersService {
    * con la información mínima necesaria para mostrarlos en el mapa.
    */
   async findMakersOnMap(): Promise<
-    { id: string; fullName: string; avatarUrl: string; bio: string; location: string; latitude: number; longitude: number }[]
+    {
+      id: string;
+      fullName: string;
+      avatarUrl: string;
+      bio: string;
+      location: string;
+      latitude: number;
+      longitude: number;
+    }[]
   > {
     const makers = await this.userRepository
       .createQueryBuilder('u')
-      .select(['u.id', 'u.fullName', 'u.avatarUrl', 'u.bio', 'u.location', 'u.latitude', 'u.longitude'])
+      .select([
+        'u.id',
+        'u.fullName',
+        'u.avatarUrl',
+        'u.bio',
+        'u.location',
+        'u.latitude',
+        'u.longitude',
+      ])
       .where('u.isActive = :active', { active: true })
       .andWhere('u.latitude IS NOT NULL')
       .andWhere('u.longitude IS NOT NULL')
