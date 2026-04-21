@@ -25,16 +25,10 @@ export class ProjectsService {
     private readonly printLogRepository: Repository<PrintLog>,
   ) {}
 
-  async create(
-    createProjectDto: CreateProjectDto,
-    user: User,
-  ): Promise<Project> {
+  async create(createProjectDto: CreateProjectDto, user: User): Promise<Project> {
     const { filamentIds, printerId, ...projectData } = createProjectDto;
 
-    const project = this.projectRepository.create({
-      ...projectData,
-      createdBy: user,
-    });
+    const project = this.projectRepository.create({ ...projectData, createdBy: user });
 
     if (printerId) {
       project.printer = await this.printerRepository.findOne({
@@ -57,7 +51,7 @@ export class ProjectsService {
   async findAll(user: User): Promise<Project[]> {
     return this.projectRepository.find({
       where: { createdBy: { id: user.id } },
-      relations: ['filaments'],
+      relations: ['filaments', 'printer'],
       order: { createdAt: 'DESC' },
     });
   }
@@ -65,102 +59,126 @@ export class ProjectsService {
   async findOne(id: string, user: User): Promise<Project> {
     const project = await this.projectRepository.findOne({
       where: { id, createdBy: { id: user.id } },
-      relations: ['printLogs', 'filaments', 'printer'],
+      relations: ['printLogs', 'printLogs.filament', 'printLogs.printer', 'filaments', 'printer'],
     });
-    if (!project) {
-      throw new NotFoundException(`Project with ID ${id} not found`);
-    }
+    if (!project) throw new NotFoundException(`Project with ID ${id} not found`);
     return project;
   }
 
-  async update(
-    id: string,
-    updateProjectDto: UpdateProjectDto,
-    user: User,
-  ): Promise<Project> {
+  async update(id: string, updateProjectDto: UpdateProjectDto, user: User): Promise<Project> {
     const project = await this.findOne(id, user);
     const oldKanbanStatus = project.kanbanStatus;
 
-    const { filamentIds, printerId, ...projectData } = updateProjectDto;
+    const { filamentIds, printerId, cancelPrint, ...projectData } = updateProjectDto;
 
     Object.assign(project, projectData);
 
     if (printerId !== undefined) {
-      if (printerId) {
-        project.printer =
-          (await this.printerRepository.findOne({
-            where: { id: printerId, createdBy: { id: user.id } },
-          })) || null;
-      } else {
-        project.printer = null;
-      }
+      project.printer = printerId
+        ? ((await this.printerRepository.findOne({ where: { id: printerId, createdBy: { id: user.id } } })) ?? null)
+        : null;
     }
 
     if (filamentIds !== undefined) {
       project.filaments = filamentIds.length
-        ? await this.filamentRepository.findBy({
-            id: In(filamentIds),
-            createdBy: { id: user.id },
-          })
+        ? await this.filamentRepository.findBy({ id: In(filamentIds), createdBy: { id: user.id } })
         : [];
     }
 
-    // Gestionar cambios de estado del kanban (Impresión y horas)
     const newKanbanStatus = project.kanbanStatus;
 
-    if (
-      oldKanbanStatus !== 'in_progress' &&
-      newKanbanStatus === 'in_progress' &&
-      project.printer
-    ) {
-      // Pasa a imprimiendo
+    // ── IN_PROGRESS: crear PrintLog activo ──────────────────────
+    if (oldKanbanStatus !== 'in_progress' && newKanbanStatus === 'in_progress' && project.printer) {
       project.printer.status = 'printing';
       await this.printerRepository.save(project.printer);
-    }
 
-    if (
-      oldKanbanStatus === 'in_progress' &&
-      newKanbanStatus === 'pending' &&
-      project.printer
-    ) {
-      project.printer.status = 'idle';
-      await this.printerRepository.save(project.printer);
-    }
-
-    if (
-      oldKanbanStatus !== 'done' &&
-      newKanbanStatus === 'done' &&
-      project.printer
-    ) {
-      // Pasa a entregado (termina impresión o entrega final)
-      project.printer.status = 'idle';
-      await this.printerRepository.save(project.printer);
-
-      // Crear log de impresión automático si tenemos datos base
-      if (project.estimatedTime || project.estimatedWeight) {
-        const filament = project.filaments?.[0]; // Toma el primero si existe
-        if (filament) {
-          const printLog = this.printLogRepository.create({
+      const filament = project.filaments?.[0] ?? null;
+      if (filament) {
+        await this.printLogRepository.save(
+          this.printLogRepository.create({
             name: `Impresión: ${project.name}`,
-            description: 'Log automático generado al completar proyecto',
-            weightUsed: project.estimatedWeight || 0,
-            printDuration: project.estimatedTime || 0,
-            status: PrintStatus.COMPLETED,
+            description: null as unknown as string,
+            weightUsed: 0,
+            printDuration: project.estimatedTime ?? 0,
+            status: PrintStatus.IN_PROGRESS,
+            printStartedAt: new Date(),
             createdBy: user,
             printer: project.printer,
             project: project,
             filament: filament,
-          });
-          await this.printLogRepository.save(printLog);
+          }),
+        );
+      }
+    }
 
-          // Descontar filamento
-          if (printLog.weightUsed > 0) {
-            filament.remainingWeight = Math.max(
-              0,
-              filament.remainingWeight - printLog.weightUsed,
-            );
-            await this.filamentRepository.save(filament);
-          }
+    // ── PENDING (desde in_progress): cancelar o revertir ────────
+    if (oldKanbanStatus === 'in_progress' && newKanbanStatus === 'pending') {
+      if (project.printer) {
+        project.printer.status = 'idle';
+        await this.printerRepository.save(project.printer);
+      }
+
+      const activeLog = await this.printLogRepository.findOne({
+        where: { project: { id: project.id }, status: PrintStatus.IN_PROGRESS },
+        relations: ['filament'],
+      });
+
+      if (cancelPrint && activeLog) {
+        const weight = project.estimatedWeight ?? 0;
+        activeLog.status = PrintStatus.CANCELLED;
+        activeLog.weightUsed = weight;
+        await this.printLogRepository.save(activeLog);
+
+        if (weight > 0 && activeLog.filament) {
+          activeLog.filament.remainingWeight = Math.max(0, activeLog.filament.remainingWeight - weight);
+          await this.filamentRepository.save(activeLog.filament);
+        }
+      } else if (activeLog) {
+        await this.printLogRepository.remove(activeLog);
+      }
+    }
+
+    // ── DONE: cerrar PrintLog como completado ────────────────────
+    if (oldKanbanStatus !== 'done' && newKanbanStatus === 'done') {
+      if (project.printer) {
+        project.printer.status = 'idle';
+        await this.printerRepository.save(project.printer);
+      }
+
+      const activeLog = await this.printLogRepository.findOne({
+        where: { project: { id: project.id }, status: PrintStatus.IN_PROGRESS },
+        relations: ['filament'],
+      });
+
+      const weight = project.estimatedWeight ?? 0;
+      const filament = activeLog?.filament ?? project.filaments?.[0] ?? null;
+
+      if (activeLog) {
+        activeLog.status = PrintStatus.COMPLETED;
+        activeLog.weightUsed = weight;
+        await this.printLogRepository.save(activeLog);
+      } else if (filament && project.printer) {
+        await this.printLogRepository.save(
+          this.printLogRepository.create({
+            name: `Impresión: ${project.name}`,
+            description: 'Log generado al completar proyecto',
+            weightUsed: weight,
+            printDuration: project.estimatedTime ?? 0,
+            status: PrintStatus.COMPLETED,
+            printStartedAt: null as unknown as Date,
+            createdBy: user,
+            printer: project.printer,
+            project: project,
+            filament: filament,
+          }),
+        );
+      }
+
+      if (weight > 0 && filament) {
+        const fresh = await this.filamentRepository.findOne({ where: { id: filament.id } });
+        if (fresh) {
+          fresh.remainingWeight = Math.max(0, fresh.remainingWeight - weight);
+          await this.filamentRepository.save(fresh);
         }
       }
     }

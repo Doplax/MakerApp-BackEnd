@@ -205,6 +205,28 @@ export class UsersService {
    * Obtiene el perfil público de un usuario (maker)
    * Carga solo información pública y relaciones públicas (printers, projects)
    */
+  async findPublicFilaments(makerId: string) {
+    const user = await this.userRepository.findOne({
+      where: { id: makerId },
+      relations: ['filaments'],
+    });
+    if (!user) throw new NotFoundException(`Maker with ID ${makerId} not found`);
+
+    return (user.filaments || [])
+      .filter((f) => f.isPublic)
+      .map((f) => ({
+        id: f.id,
+        brand: f.brand,
+        material: f.material,
+        color: f.color,
+        colorHex: f.colorHex,
+        remainingWeight: f.remainingWeight,
+        totalWeight: f.totalWeight,
+        status: f.status,
+        imageUrl: f.imageUrl,
+      }));
+  }
+
   async findPublicProfile(id: string) {
     const user = await this.userRepository.findOne({
       where: { id },
@@ -242,16 +264,18 @@ export class UsersService {
       imageUrl: p.imageUrl,
     }));
 
-    // Filtrar solo campos públicos de projects
-    const publicProjects = (user.projects || []).map((p) => ({
-      id: p.id,
-      name: p.name,
-      description: p.description,
-      status: p.status,
-      imageUrl: p.imageUrl,
-      estimatedWeight: p.estimatedWeight,
-      estimatedTime: p.estimatedTime,
-    }));
+    // Filtrar solo proyectos públicos
+    const publicProjects = (user.projects || [])
+      .filter((p) => p.isPublic)
+      .map((p) => ({
+        id: p.id,
+        name: p.name,
+        description: p.description,
+        status: p.status,
+        imageUrl: p.imageUrl,
+        estimatedWeight: p.estimatedWeight,
+        estimatedTime: p.estimatedTime,
+      }));
 
     return {
       id: user.id,

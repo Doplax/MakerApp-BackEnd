@@ -35,9 +35,17 @@ export class PublicController {
     try {
       return await this.usersService.findPublicProfile(id);
     } catch (error) {
-      if (error instanceof NotFoundException) {
-        throw error;
-      }
+      if (error instanceof NotFoundException) throw error;
+      throw new NotFoundException(`Maker with ID ${id} not found`);
+    }
+  }
+
+  @Get('makers/:id/filaments')
+  async getPublicMakerFilaments(@Param('id', ParseUUIDPipe) id: string) {
+    try {
+      return await this.usersService.findPublicFilaments(id);
+    } catch (error) {
+      if (error instanceof NotFoundException) throw error;
       throw new NotFoundException(`Maker with ID ${id} not found`);
     }
   }

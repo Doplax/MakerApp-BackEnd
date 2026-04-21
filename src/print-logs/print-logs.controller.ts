@@ -43,6 +43,14 @@ export class PrintLogsController {
     return this.printLogsService.findByFilament(filamentId, user);
   }
 
+  @Get('project/:projectId')
+  findByProject(
+    @Param('projectId', ParseUUIDPipe) projectId: string,
+    @CurrentUser() user: User,
+  ) {
+    return this.printLogsService.findByProject(projectId, user);
+  }
+
   @Get(':id')
   findOne(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: User) {
     return this.printLogsService.findOne(id, user);

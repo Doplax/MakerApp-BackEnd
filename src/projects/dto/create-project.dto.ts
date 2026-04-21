@@ -85,4 +85,8 @@ export class CreateProjectDto {
   @IsUUID('4')
   @IsOptional()
   printerId?: string;
+
+  @IsBoolean()
+  @IsOptional()
+  cancelPrint?: boolean;
 }

@@ -36,6 +36,9 @@ export class PrintLog {
   })
   status!: PrintStatus;
 
+  @Column({ type: 'timestamp', nullable: true })
+  printStartedAt!: Date | null;
+
   @Column({ type: 'text', nullable: true })
   notes!: string;
 
