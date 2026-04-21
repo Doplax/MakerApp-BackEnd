@@ -9,6 +9,8 @@ export const printersToSeed: {
   nozzleDiameter: number;
   status: string;
   notes?: string;
+  purchasePrice?: number;
+  amortizationMonths?: number;
 }[] = [
   {
     name: 'Prusa MK4',
@@ -21,6 +23,8 @@ export const printersToSeed: {
     nozzleDiameter: 0.4,
     status: 'idle',
     notes: 'Impresora principal, muy fiable',
+    purchasePrice: 799,
+    amortizationMonths: 36,
   },
   {
     name: 'Ender 3 V3',
@@ -33,6 +37,8 @@ export const printersToSeed: {
     nozzleDiameter: 0.4,
     status: 'idle',
     notes: 'Modificada con direct drive',
+    purchasePrice: 299,
+    amortizationMonths: 24,
   },
   {
     name: 'Bambu Lab P1S',
@@ -45,5 +51,7 @@ export const printersToSeed: {
     nozzleDiameter: 0.4,
     status: 'printing',
     notes: 'CoreXY cerrada, multi-material con AMS',
+    purchasePrice: 699,
+    amortizationMonths: 30,
   },
 ];

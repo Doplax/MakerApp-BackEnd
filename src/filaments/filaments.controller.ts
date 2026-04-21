@@ -4,6 +4,7 @@ import {
   Post,
   Body,
   Patch,
+  Put,
   Param,
   Delete,
   Query,
@@ -41,6 +42,7 @@ export class FilamentsController {
     return this.filamentsService.findOne(id, user);
   }
 
+  @Put(':id')
   @Patch(':id')
   update(
     @Param('id', ParseUUIDPipe) id: string,

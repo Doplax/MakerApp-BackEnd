@@ -6,6 +6,7 @@ import { UpdateProjectDto } from './dto/update-project.dto.js';
 import { Project } from './entities/project.entity.js';
 import { User } from '../users/entities/user.entity.js';
 import { Filament } from '../filaments/entities/filament.entity.js';
+import { Printer } from '../printers/entities/printer.entity.js';
 
 @Injectable()
 export class ProjectsService {
@@ -16,18 +17,26 @@ export class ProjectsService {
     private readonly projectRepository: Repository<Project>,
     @InjectRepository(Filament)
     private readonly filamentRepository: Repository<Filament>,
+    @InjectRepository(Printer)
+    private readonly printerRepository: Repository<Printer>,
   ) {}
 
   async create(
     createProjectDto: CreateProjectDto,
     user: User,
   ): Promise<Project> {
-    const { filamentIds, ...projectData } = createProjectDto;
+    const { filamentIds, printerId, ...projectData } = createProjectDto;
 
     const project = this.projectRepository.create({
       ...projectData,
       createdBy: user,
     });
+
+    if (printerId) {
+      project.printer = await this.printerRepository.findOne({
+        where: { id: printerId, createdBy: { id: user.id } },
+      });
+    }
 
     if (filamentIds?.length) {
       project.filaments = await this.filamentRepository.findBy({
@@ -52,7 +61,7 @@ export class ProjectsService {
   async findOne(id: string, user: User): Promise<Project> {
     const project = await this.projectRepository.findOne({
       where: { id, createdBy: { id: user.id } },
-      relations: ['printLogs', 'filaments'],
+      relations: ['printLogs', 'filaments', 'printer'],
     });
     if (!project) {
       throw new NotFoundException(`Project with ID ${id} not found`);
@@ -66,9 +75,20 @@ export class ProjectsService {
     user: User,
   ): Promise<Project> {
     const project = await this.findOne(id, user);
-    const { filamentIds, ...projectData } = updateProjectDto;
+    const { filamentIds, printerId, ...projectData } = updateProjectDto;
 
     Object.assign(project, projectData);
+
+    if (printerId !== undefined) {
+      if (printerId) {
+        project.printer =
+          (await this.printerRepository.findOne({
+            where: { id: printerId, createdBy: { id: user.id } },
+          })) || null;
+      } else {
+        project.printer = null;
+      }
+    }
 
     if (filamentIds !== undefined) {
       project.filaments = filamentIds.length
