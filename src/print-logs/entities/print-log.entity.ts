@@ -50,9 +50,10 @@ export class PrintLog {
 
   @ManyToOne(() => Filament, (filament) => filament.printLogs, {
     eager: true,
-    onDelete: 'CASCADE',
+    nullable: true,
+    onDelete: 'SET NULL',
   })
-  filament!: Filament;
+  filament!: Filament | null;
 
   @ManyToOne(() => Printer, (printer) => printer.printLogs, {
     eager: true,

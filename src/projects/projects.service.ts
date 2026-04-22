@@ -96,12 +96,16 @@ export class ProjectsService {
     const newKanbanStatus = project.kanbanStatus;
 
     // ── IN_PROGRESS: crear PrintLog activo ──────────────────────
-    if (oldKanbanStatus !== 'in_progress' && newKanbanStatus === 'in_progress' && project.printer) {
-      project.printer.status = 'printing';
-      await this.printerRepository.save(project.printer);
+    if (newKanbanStatus === 'in_progress' && project.printer) {
+      const existingActiveLog = await this.printLogRepository.findOne({
+        where: { project: { id: project.id }, status: PrintStatus.IN_PROGRESS },
+      });
 
-      const filament = project.filaments?.[0] ?? null;
-      if (filament) {
+      if (!existingActiveLog) {
+        project.printer.status = 'printing';
+        await this.printerRepository.save(project.printer);
+
+        const filament = project.filaments?.[0] ?? null;
         await this.printLogRepository.save(
           this.printLogRepository.create({
             name: `Impresión: ${project.name}`,
@@ -114,7 +118,7 @@ export class ProjectsService {
             createdBy: user,
             printer: { id: project.printer.id } as Printer,
             project: { id: project.id } as Project,
-            filament: { id: filament.id } as Filament,
+            ...(filament ? { filament: { id: filament.id } as Filament } : {}),
           }),
         );
       }

@@ -128,7 +128,8 @@ export class PrintLogsService {
     // Si cambió el peso, ajustar el filamento
     if (
       updatePrintLogDto.weightUsed !== undefined &&
-      updatePrintLogDto.weightUsed !== printLog.weightUsed
+      updatePrintLogDto.weightUsed !== printLog.weightUsed &&
+      printLog.filament
     ) {
       const diff = updatePrintLogDto.weightUsed - printLog.weightUsed;
       if (diff > 0) {
@@ -153,10 +154,12 @@ export class PrintLogsService {
     const printLog = await this.findOne(id, user);
 
     // Restaurar el peso al filamento
-    await this.filamentsService.restoreWeight(
-      printLog.filament.id,
-      printLog.weightUsed,
-    );
+    if (printLog.filament) {
+      await this.filamentsService.restoreWeight(
+        printLog.filament.id,
+        printLog.weightUsed,
+      );
+    }
 
     await this.printLogRepository.remove(printLog);
     this.logger.log(
