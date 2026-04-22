@@ -65,6 +65,9 @@ export class Printer {
   @Column({ type: 'int', nullable: true })
   amortizationMonths!: number; // Meses para amortizar (configurable)
 
+  @Column({ type: 'int', nullable: true })
+  powerConsumption!: number; // Consumo en vatios (W) para calculadora de coste
+
   // ── Mantenimiento ─────────────────────────────────────────
   @Column({ type: 'int', default: 300 })
   maintenanceSimpleHours!: number; // Cada cuántas horas — mantenimiento simple

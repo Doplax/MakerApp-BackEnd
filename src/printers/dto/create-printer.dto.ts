@@ -79,6 +79,11 @@ export class CreatePrinterDto {
   @IsInt()
   @IsPositive()
   @IsOptional()
+  powerConsumption?: number;
+
+  @IsInt()
+  @IsPositive()
+  @IsOptional()
   maintenanceSimpleHours?: number;
 
   @IsInt()

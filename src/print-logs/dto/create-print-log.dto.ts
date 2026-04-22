@@ -2,11 +2,13 @@ import {
   IsEnum,
   IsNotEmpty,
   IsNumber,
+  IsObject,
   IsOptional,
   IsPositive,
   IsString,
   IsUUID,
   MaxLength,
+  Min,
 } from 'class-validator';
 import { PrintStatus } from '../../common/enums/index.js';
 
@@ -56,4 +58,18 @@ export class CreatePrintLogDto {
   @IsNumber()
   @IsOptional()
   copies?: number;
+
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  calculatedCost?: number;
+
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  calculatedPrice?: number;
+
+  @IsObject()
+  @IsOptional()
+  costBreakdown?: Record<string, number>;
 }

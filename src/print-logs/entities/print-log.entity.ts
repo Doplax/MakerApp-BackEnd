@@ -48,6 +48,16 @@ export class PrintLog {
   @Column({ type: 'int', nullable: true, default: 1 })
   copies!: number;
 
+  // ── Calculadora de coste ──────────────────────────────────
+  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
+  calculatedCost!: number | null; // suma de material + electricidad + mano obra + amortización + fijos
+
+  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
+  calculatedPrice!: number | null; // precio final (con margen, envío e IVA)
+
+  @Column({ type: 'jsonb', nullable: true })
+  costBreakdown!: Record<string, number> | null; // desglose para auditoría
+
   @ManyToOne(() => Filament, (filament) => filament.printLogs, {
     eager: true,
     nullable: true,
