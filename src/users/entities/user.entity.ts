@@ -40,6 +40,38 @@ export class User {
   @Column({ nullable: true })
   avatarUrl!: string;
 
+  // ── Datos personales ─────────────────────────────────────────
+  @Column({ nullable: true, length: 100 })
+  firstName!: string;
+
+  @Column({ nullable: true, length: 100 })
+  lastName!: string;
+
+  @Column({ type: 'date', nullable: true })
+  dateOfBirth!: Date;
+
+  @Column({ nullable: true, length: 20 })
+  dni!: string;
+
+  @Column({ nullable: true, length: 30 })
+  phone!: string;
+
+  // ── Dirección postal ─────────────────────────────────────────
+  @Column({ nullable: true, length: 100 })
+  country!: string;
+
+  @Column({ nullable: true, length: 100 })
+  province!: string;
+
+  @Column({ nullable: true, length: 100 })
+  city!: string;
+
+  @Column({ nullable: true, length: 20 })
+  postalCode!: string;
+
+  @Column({ nullable: true, length: 200 })
+  addressLine!: string;
+
   // ── Nombre del taller ────────────────────────────────────────
   @Column({ nullable: true, length: 150 })
   workshopName!: string;
