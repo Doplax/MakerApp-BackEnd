@@ -59,14 +59,12 @@ export class ProjectsService {
       .createQueryBuilder('project')
       .leftJoinAndSelect('project.filaments', 'filament')
       .leftJoinAndSelect('project.printer', 'printer')
-      .leftJoinAndSelect(
-        'project.printLogs',
-        'activePrintLog',
-        'activePrintLog.status = :status',
-        { status: 'in_progress' },
-      )
+      .leftJoinAndSelect('project.printLogs', 'printLog')
+      .leftJoinAndSelect('printLog.filament', 'printLogFilament')
+      .leftJoinAndSelect('printLog.printer', 'printLogPrinter')
       .where('project.createdBy = :userId', { userId: user.id })
       .orderBy('project.createdAt', 'DESC')
+      .addOrderBy('printLog.createdAt', 'DESC')
       .getMany();
   }
 
