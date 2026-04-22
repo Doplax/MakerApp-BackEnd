@@ -93,4 +93,8 @@ export class CreateProjectDto {
   @IsNumber()
   @IsOptional()
   copies?: number;
+
+  @IsNumber()
+  @IsOptional()
+  pendingCopies?: number;
 }

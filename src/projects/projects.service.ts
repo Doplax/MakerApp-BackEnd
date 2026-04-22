@@ -81,6 +81,9 @@ export class ProjectsService {
 
     Object.assign(project, projectData);
 
+    // Guardar copias pendientes al poner en cola
+    if (copies !== undefined) project.pendingCopies = copies;
+
     if (printerId !== undefined) {
       project.printer = printerId
         ? ((await this.printerRepository.findOne({ where: { id: printerId, createdBy: { id: user.id } } })) ?? null)
@@ -114,13 +117,14 @@ export class ProjectsService {
             printDuration: project.estimatedTime ?? 0,
             status: PrintStatus.IN_PROGRESS,
             printStartedAt: new Date(),
-            copies: copies ?? 1,
+            copies: copies ?? project.pendingCopies ?? 1,
             createdBy: user,
             printer: { id: project.printer.id } as Printer,
             project: { id: project.id } as Project,
             ...(filament ? { filament: { id: filament.id } as Filament } : {}),
           }),
         );
+        project.pendingCopies = null;
       }
     }
 

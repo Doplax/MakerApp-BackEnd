@@ -77,6 +77,9 @@ export class Project {
   @Column({ type: 'text', nullable: true })
   notes!: string;
 
+  @Column({ type: 'int', nullable: true, default: 1 })
+  pendingCopies!: number | null;
+
   @ManyToOne(() => User, (user) => user.projects, { eager: false })
   createdBy!: User;
 
