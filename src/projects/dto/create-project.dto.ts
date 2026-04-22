@@ -89,4 +89,8 @@ export class CreateProjectDto {
   @IsBoolean()
   @IsOptional()
   cancelPrint?: boolean;
+
+  @IsNumber()
+  @IsOptional()
+  copies?: number;
 }

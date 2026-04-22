@@ -69,7 +69,7 @@ export class ProjectsService {
     const project = await this.findOne(id, user);
     const oldKanbanStatus = project.kanbanStatus;
 
-    const { filamentIds, printerId, cancelPrint, ...projectData } = updateProjectDto;
+    const { filamentIds, printerId, cancelPrint, copies, ...projectData } = updateProjectDto;
 
     Object.assign(project, projectData);
 
@@ -102,6 +102,7 @@ export class ProjectsService {
             printDuration: project.estimatedTime ?? 0,
             status: PrintStatus.IN_PROGRESS,
             printStartedAt: new Date(),
+            copies: copies ?? 1,
             createdBy: user,
             printer: project.printer,
             project: project,
@@ -150,7 +151,9 @@ export class ProjectsService {
         relations: ['filament'],
       });
 
-      const weight = project.estimatedWeight ?? 0;
+      const unitWeight = project.estimatedWeight ?? 0;
+      const logCopies = activeLog?.copies ?? 1;
+      const weight = unitWeight * logCopies;
       const filament = activeLog?.filament ?? project.filaments?.[0] ?? null;
 
       if (activeLog) {
@@ -166,6 +169,7 @@ export class ProjectsService {
             printDuration: project.estimatedTime ?? 0,
             status: PrintStatus.COMPLETED,
             printStartedAt: null as unknown as Date,
+            copies: 1,
             createdBy: user,
             printer: project.printer,
             project: project,

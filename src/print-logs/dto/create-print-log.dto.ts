@@ -52,4 +52,8 @@ export class CreatePrintLogDto {
   @IsUUID()
   @IsOptional()
   projectId?: string;
+
+  @IsNumber()
+  @IsOptional()
+  copies?: number;
 }

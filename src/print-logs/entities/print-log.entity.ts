@@ -45,6 +45,9 @@ export class PrintLog {
   @Column({ nullable: true })
   imageUrl!: string;
 
+  @Column({ type: 'int', nullable: true, default: 1 })
+  copies!: number;
+
   @ManyToOne(() => Filament, (filament) => filament.printLogs, {
     eager: true,
     onDelete: 'CASCADE',

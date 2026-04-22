@@ -82,6 +82,17 @@ export class PrintLogsService {
     });
   }
 
+  async findByPrinter(printerId: string, user: User): Promise<PrintLog[]> {
+    return this.printLogRepository.find({
+      where: {
+        printer: { id: printerId },
+        createdBy: { id: user.id },
+      },
+      relations: ['filament', 'printer', 'project'],
+      order: { createdAt: 'DESC' },
+    });
+  }
+
   async findByProject(projectId: string, user: User): Promise<PrintLog[]> {
     return this.printLogRepository.find({
       where: {
