@@ -14,6 +14,7 @@ import { AuthGuard } from '@nestjs/passport';
 import { PrintLogsService } from './print-logs.service.js';
 import { CreatePrintLogDto } from './dto/create-print-log.dto.js';
 import { UpdatePrintLogDto } from './dto/update-print-log.dto.js';
+import { FilterPrintLogDto } from './dto/filter-print-log.dto.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { User } from '../users/entities/user.entity.js';
 
@@ -31,8 +32,8 @@ export class PrintLogsController {
   }
 
   @Get()
-  findAll(@CurrentUser() user: User) {
-    return this.printLogsService.findAll(user);
+  findAll(@CurrentUser() user: User, @Query() filters: FilterPrintLogDto) {
+    return this.printLogsService.findAll(user, filters);
   }
 
   @Get('filament/:filamentId')

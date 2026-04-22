@@ -8,6 +8,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CreatePrintLogDto } from './dto/create-print-log.dto.js';
 import { UpdatePrintLogDto } from './dto/update-print-log.dto.js';
+import { FilterPrintLogDto } from './dto/filter-print-log.dto.js';
 import { PrintLog } from './entities/print-log.entity.js';
 import { PrintStatus } from '../common/enums/index.js';
 import { Filament } from '../filaments/entities/filament.entity.js';
@@ -15,6 +16,13 @@ import { FilamentsService } from '../filaments/filaments.service.js';
 import { Printer } from '../printers/entities/printer.entity.js';
 import { Project } from '../projects/entities/project.entity.js';
 import { User } from '../users/entities/user.entity.js';
+
+export interface PaginatedPrintLogs {
+  data: PrintLog[];
+  total: number;
+  page: number;
+  limit: number;
+}
 
 @Injectable()
 export class PrintLogsService {
@@ -64,12 +72,34 @@ export class PrintLogsService {
     return this.findOne(saved.id, user);
   }
 
-  async findAll(user: User): Promise<PrintLog[]> {
-    return this.printLogRepository.find({
-      where: { createdBy: { id: user.id } },
-      relations: ['filament', 'printer', 'project'],
-      order: { createdAt: 'DESC' },
-    });
+  async findAll(user: User, filters: FilterPrintLogDto = {}): Promise<PaginatedPrintLogs> {
+    const { page = 1, limit = 20, status, filamentId, printerId, projectId, search, dateFrom, dateTo } = filters;
+
+    const qb = this.printLogRepository
+      .createQueryBuilder('log')
+      .leftJoinAndSelect('log.filament', 'filament')
+      .leftJoinAndSelect('log.printer', 'printer')
+      .leftJoinAndSelect('log.project', 'project')
+      .innerJoin('log.createdBy', 'creator')
+      .where('creator.id = :userId', { userId: user.id })
+      .orderBy('log.createdAt', 'DESC')
+      .skip((page - 1) * limit)
+      .take(limit);
+
+    if (status) qb.andWhere('log.status = :status', { status });
+    if (filamentId) qb.andWhere('filament.id = :filamentId', { filamentId });
+    if (printerId) qb.andWhere('printer.id = :printerId', { printerId });
+    if (projectId) qb.andWhere('project.id = :projectId', { projectId });
+    if (search) qb.andWhere('log.name ILIKE :search', { search: `%${search}%` });
+    if (dateFrom) qb.andWhere('log.createdAt >= :dateFrom', { dateFrom: new Date(dateFrom) });
+    if (dateTo) {
+      const end = new Date(dateTo);
+      end.setHours(23, 59, 59, 999);
+      qb.andWhere('log.createdAt <= :dateTo', { dateTo: end });
+    }
+
+    const [data, total] = await qb.getManyAndCount();
+    return { data, total, page, limit };
   }
 
   async findByFilament(filamentId: string, user: User): Promise<PrintLog[]> {
