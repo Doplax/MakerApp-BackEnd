@@ -49,11 +49,19 @@ export class ProjectsService {
   }
 
   async findAll(user: User): Promise<Project[]> {
-    return this.projectRepository.find({
-      where: { createdBy: { id: user.id } },
-      relations: ['filaments', 'printer'],
-      order: { createdAt: 'DESC' },
-    });
+    return this.projectRepository
+      .createQueryBuilder('project')
+      .leftJoinAndSelect('project.filaments', 'filament')
+      .leftJoinAndSelect('project.printer', 'printer')
+      .leftJoinAndSelect(
+        'project.printLogs',
+        'activePrintLog',
+        'activePrintLog.status = :status',
+        { status: 'in_progress' },
+      )
+      .where('project.createdBy = :userId', { userId: user.id })
+      .orderBy('project.createdAt', 'DESC')
+      .getMany();
   }
 
   async findOne(id: string, user: User): Promise<Project> {
@@ -104,9 +112,9 @@ export class ProjectsService {
             printStartedAt: new Date(),
             copies: copies ?? 1,
             createdBy: user,
-            printer: project.printer,
-            project: project,
-            filament: filament,
+            printer: { id: project.printer.id } as Printer,
+            project: { id: project.id } as Project,
+            filament: { id: filament.id } as Filament,
           }),
         );
       }
@@ -171,9 +179,9 @@ export class ProjectsService {
             printStartedAt: null as unknown as Date,
             copies: 1,
             createdBy: user,
-            printer: project.printer,
-            project: project,
-            filament: filament,
+            printer: { id: project.printer.id } as Printer,
+            project: { id: project.id } as Project,
+            filament: { id: filament.id } as Filament,
           }),
         );
       }
@@ -187,7 +195,8 @@ export class ProjectsService {
       }
     }
 
-    return this.projectRepository.save(project);
+    await this.projectRepository.save(project);
+    return this.findOne(project.id, user);
   }
 
   async remove(id: string, user: User): Promise<{ message: string }> {
