@@ -21,11 +21,6 @@ export class CreateProjectDto {
   @IsOptional()
   description?: string;
 
-  @IsString()
-  @IsIn(['draft', 'in_progress', 'completed', 'archived'])
-  @IsOptional()
-  status?: string;
-
   // ── Kanban ──────────────────────────────────────────────────
   @IsString()
   @IsIn(['pending', 'in_progress', 'done'])

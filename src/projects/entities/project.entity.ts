@@ -26,13 +26,6 @@ export class Project {
   @Column({ type: 'text', nullable: true })
   description!: string;
 
-  @Column({
-    type: 'enum',
-    enum: ['draft', 'in_progress', 'completed', 'archived'],
-    default: 'draft',
-  })
-  status!: string;
-
   // ── Kanban / pedido ────────────────────────────────────────
   @Column({
     type: 'enum',

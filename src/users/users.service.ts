@@ -271,7 +271,6 @@ export class UsersService {
         id: p.id,
         name: p.name,
         description: p.description,
-        status: p.status,
         imageUrl: p.imageUrl,
         estimatedWeight: p.estimatedWeight,
         estimatedTime: p.estimatedTime,

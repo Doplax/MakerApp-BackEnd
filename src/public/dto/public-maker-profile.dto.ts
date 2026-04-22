@@ -17,7 +17,6 @@ export class PublicProjectDto {
   id!: string;
   name!: string;
   description?: string;
-  status!: string;
   imageUrl?: string;
   estimatedWeight?: number;
   estimatedTime?: number;
