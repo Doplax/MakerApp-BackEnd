@@ -9,6 +9,7 @@ import { Repository } from 'typeorm';
 import { CreatePrintLogDto } from './dto/create-print-log.dto.js';
 import { UpdatePrintLogDto } from './dto/update-print-log.dto.js';
 import { PrintLog } from './entities/print-log.entity.js';
+import { PrintStatus } from '../common/enums/index.js';
 import { Filament } from '../filaments/entities/filament.entity.js';
 import { FilamentsService } from '../filaments/filaments.service.js';
 import { Printer } from '../printers/entities/printer.entity.js';
@@ -146,6 +147,13 @@ export class PrintLogsService {
     if (filamentId) printLog.filament = { id: filamentId } as Filament;
     if (printerId) printLog.printer = { id: printerId } as Printer;
     if (projectId) printLog.project = { id: projectId } as Project;
+
+    if (
+      updatePrintLogDto.status === PrintStatus.IN_PROGRESS &&
+      !printLog.printStartedAt
+    ) {
+      printLog.printStartedAt = new Date();
+    }
 
     return this.printLogRepository.save(printLog);
   }

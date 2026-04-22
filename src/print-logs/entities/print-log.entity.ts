@@ -32,7 +32,7 @@ export class PrintLog {
   @Column({
     type: 'enum',
     enum: PrintStatus,
-    default: PrintStatus.COMPLETED,
+    default: PrintStatus.PENDING,
   })
   status!: PrintStatus;
 
