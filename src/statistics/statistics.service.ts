@@ -35,6 +35,7 @@ export class StatisticsService {
       totalPrinters,
       totalProjects,
       recentPrintLogs,
+      salesAgg,
     ] = await Promise.all([
       // Agregados de filamentos
       this.filamentRepository
@@ -127,6 +128,14 @@ export class StatisticsService {
         order: { createdAt: 'DESC' },
         take: 5,
       }),
+
+      // Ganancias / ventas: suma de price de proyectos vendidos (kanban done)
+      this.projectRepository
+        .createQueryBuilder('p')
+        .select('COALESCE(SUM(p.price), 0)', 'totalSales')
+        .where('p.createdBy = :userId', { userId })
+        .andWhere('p.kanbanStatus = :status', { status: 'done' })
+        .getRawOne(),
     ]);
 
     // Resolver entidades de filamentos para topFilaments
@@ -181,6 +190,7 @@ export class StatisticsService {
         totalPrintTime: Math.round(parseFloat(printLogAgg.totalPrintTime)),
         totalPrinters,
         totalProjects,
+        totalSales: Math.round(parseFloat(salesAgg.totalSales) * 100) / 100,
       },
       alerts: {
         lowStockCount: lowStockFilaments.length,
