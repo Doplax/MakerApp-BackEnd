@@ -4,6 +4,8 @@ import {
   BadRequestException,
   UnauthorizedException,
   Logger,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -12,6 +14,7 @@ import { UpdateUserDto } from './dto/update-user.dto.js';
 import { UpdateProfileDto } from './dto/update-profile.dto.js';
 import { ChangePasswordDto } from './dto/change-password.dto.js';
 import { User } from './entities/user.entity.js';
+import { MakerReviewsService } from '../maker-reviews/maker-reviews.service.js';
 
 @Injectable()
 export class UsersService {
@@ -20,6 +23,8 @@ export class UsersService {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    @Inject(forwardRef(() => MakerReviewsService))
+    private readonly makerReviewsService: MakerReviewsService,
   ) {}
 
   async create(createUserDto: CreateUserDto): Promise<User> {
@@ -276,6 +281,8 @@ export class UsersService {
         estimatedTime: p.estimatedTime,
       }));
 
+    const rating = await this.makerReviewsService.getMakerRatingSummary(user.id);
+
     return {
       id: user.id,
       fullName: user.fullName,
@@ -293,6 +300,8 @@ export class UsersService {
       customLinks: user.customLinks,
       printers: publicPrinters,
       projects: publicProjects,
+      ratingAverage: rating.average,
+      ratingCount: rating.count,
     };
   }
 }

@@ -45,4 +45,8 @@ export class PublicMakerProfileDto {
   // Datos públicos de relaciones
   printers!: PublicPrinterDto[];
   projects!: PublicProjectDto[];
+
+  // Valoración del maker (agregado de MakerReview)
+  ratingAverage!: number; // 0–5 (decimales)
+  ratingCount!: number; // nº de reseñas
 }
