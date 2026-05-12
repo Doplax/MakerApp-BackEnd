@@ -13,4 +13,9 @@ export class StatisticsController {
   getDashboardStats(@CurrentUser() user: User) {
     return this.statisticsService.getDashboardStats(user);
   }
+
+  @Get('monthly-activity')
+  getMonthlyActivity(@CurrentUser() user: User) {
+    return this.statisticsService.getMonthlyActivity(user);
+  }
 }

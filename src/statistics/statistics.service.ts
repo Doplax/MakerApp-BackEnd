@@ -1,12 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { MoreThanOrEqual, Repository } from 'typeorm';
 import { Filament } from '../filaments/entities/filament.entity.js';
 import { PrintLog } from '../print-logs/entities/print-log.entity.js';
 import { Printer } from '../printers/entities/printer.entity.js';
 import { Project } from '../projects/entities/project.entity.js';
 import { User } from '../users/entities/user.entity.js';
-import { FilamentStatus } from '../common/enums/index.js';
+import { FilamentStatus, PrintStatus } from '../common/enums/index.js';
 
 @Injectable()
 export class StatisticsService {
@@ -212,6 +212,41 @@ export class StatisticsService {
       },
       recentActivity: recentPrintLogs,
       topFilaments,
+    };
+  }
+
+  /**
+   * Estadística mensual del maker: proyectos completados y horas de impresión
+   * en los últimos 30 días. Usado en el perfil privado.
+   */
+  async getMonthlyActivity(
+    user: User,
+  ): Promise<{ projectsDone: number; printHours: number }> {
+    const userId = user.id;
+    const since = new Date();
+    since.setDate(since.getDate() - 30);
+
+    const [projectsDone, printAgg] = await Promise.all([
+      this.projectRepository.count({
+        where: {
+          createdBy: { id: userId },
+          kanbanStatus: 'done',
+          updatedAt: MoreThanOrEqual(since),
+        },
+      }),
+      this.printLogRepository
+        .createQueryBuilder('pl')
+        .select('COALESCE(SUM(pl.printDuration), 0)', 'minutes')
+        .where('pl.createdBy = :userId', { userId })
+        .andWhere('pl.status = :status', { status: PrintStatus.COMPLETED })
+        .andWhere('pl.updatedAt >= :since', { since })
+        .getRawOne<{ minutes: string }>(),
+    ]);
+
+    const totalMinutes = printAgg?.minutes ? parseFloat(printAgg.minutes) : 0;
+    return {
+      projectsDone,
+      printHours: Math.round((totalMinutes / 60) * 10) / 10,
     };
   }
 }
