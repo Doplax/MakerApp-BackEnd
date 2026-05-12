@@ -83,7 +83,7 @@ export class StripeController {
       req.rawBody,
       sig,
     ) as Record<string, unknown>;
-    this.stripeService.handleWebhookEvent(event);
+    await this.stripeService.handleWebhookEvent(event);
     return { received: true };
   }
 }

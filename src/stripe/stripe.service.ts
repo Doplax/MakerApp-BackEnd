@@ -1,6 +1,7 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Stripe from 'stripe';
+import { PurchasesService } from '../purchases/purchases.service.js';
 
 // InstanceType evita el error TS2709 "Cannot use namespace Stripe as a type"
 type StripeClient = InstanceType<typeof Stripe>;
@@ -11,7 +12,10 @@ export class StripeService {
   private readonly logger = new Logger(StripeService.name);
   private readonly feePercent: number;
 
-  constructor(private readonly config: ConfigService) {
+  constructor(
+    private readonly config: ConfigService,
+    private readonly purchases: PurchasesService,
+  ) {
     this.feePercent = Number(config.get('STRIPE_PLATFORM_FEE_PERCENT') ?? 5);
   }
 
@@ -102,16 +106,35 @@ export class StripeService {
     return this.stripe.webhooks.constructEvent(payload, signature, secret);
   }
 
-  handleWebhookEvent(event: Record<string, unknown>): void {
+  async handleWebhookEvent(event: Record<string, unknown>): Promise<void> {
     const type = event['type'] as string;
     const object = (event['data'] as Record<string, unknown>)?.[
       'object'
     ] as Record<string, unknown>;
 
     switch (type) {
-      case 'payment_intent.succeeded':
-        this.logger.log(`PaymentIntent succeeded: ${object?.['id']}`);
+      case 'payment_intent.succeeded': {
+        const paymentIntentId = object?.['id'] as string;
+        const amount = Number(object?.['amount'] ?? 0);
+        const currency = (object?.['currency'] as string) ?? 'eur';
+        const metadata = (object?.['metadata'] as Record<string, string>) ?? {};
+        this.logger.log(`PaymentIntent succeeded: ${paymentIntentId}`);
+        try {
+          await this.purchases.recordSucceeded({
+            paymentIntentId,
+            amount,
+            currency,
+            projectId: metadata['projectId'],
+            buyerId: metadata['buyerId'],
+            makerId: metadata['makerId'],
+          });
+        } catch (e) {
+          this.logger.error(
+            `Error registrando compra para ${paymentIntentId}: ${(e as Error).message}`,
+          );
+        }
         break;
+      }
       case 'payment_intent.payment_failed':
         this.logger.warn(`PaymentIntent failed: ${object?.['id']}`);
         break;

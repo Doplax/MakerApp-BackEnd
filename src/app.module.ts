@@ -16,6 +16,7 @@ import { FollowsModule } from './follows/follows.module.js';
 import { FilamentCatalogModule } from './filament-catalog/filament-catalog.module.js';
 import { ReviewsModule } from './reviews/reviews.module.js';
 import { StripeModule } from './stripe/stripe.module.js';
+import { PurchasesModule } from './purchases/purchases.module.js';
 import { CloudinaryModule } from './cloudinary/cloudinary.module.js';
 import { MailModule } from './mail/mail.module.js';
 
@@ -51,6 +52,7 @@ import { MailModule } from './mail/mail.module.js';
     FilamentCatalogModule,
     ReviewsModule,
     StripeModule,
+    PurchasesModule,
     CloudinaryModule,
     MailModule,
   ],
