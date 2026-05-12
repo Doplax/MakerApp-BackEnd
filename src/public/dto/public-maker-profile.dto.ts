@@ -42,6 +42,9 @@ export class PublicMakerProfileDto {
   // Links personalizados
   customLinks?: { label: string; url: string }[];
 
+  // Proyecto destacado del perfil (ID; el cliente lo resuelve sobre `projects`)
+  featuredProjectId?: string | null;
+
   // Datos públicos de relaciones
   printers!: PublicPrinterDto[];
   projects!: PublicProjectDto[];

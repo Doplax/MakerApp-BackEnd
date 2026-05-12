@@ -136,6 +136,31 @@ export class UsersService {
 
   async updateProfile(id: string, dto: UpdateProfileDto): Promise<User> {
     const user = await this.findOne(id);
+
+    // Si se está fijando un proyecto destacado, validar que pertenezca al usuario
+    // y sea público (si es null/undefined se permite limpiar el destacado).
+    if (dto.featuredProjectId) {
+      const exists = await this.userRepository.manager
+        .createQueryBuilder()
+        .select('p.id', 'id')
+        .addSelect('p.isPublic', 'isPublic')
+        .addSelect('p.createdById', 'createdById')
+        .from('projects', 'p')
+        .where('p.id = :id', { id: dto.featuredProjectId })
+        .getRawOne<{ id: string; isPublic: boolean; createdById: string }>();
+
+      if (!exists || exists.createdById !== id) {
+        throw new BadRequestException(
+          'El proyecto destacado no existe o no te pertenece',
+        );
+      }
+      if (!exists.isPublic) {
+        throw new BadRequestException(
+          'El proyecto destacado debe ser público',
+        );
+      }
+    }
+
     Object.assign(user, dto);
     const saved = await this.userRepository.save(user);
     delete (saved as Partial<User>).password;
@@ -251,6 +276,7 @@ export class UsersService {
         'youtube',
         'twitter',
         'customLinks',
+        'featuredProjectId',
       ],
     });
 
@@ -298,6 +324,7 @@ export class UsersService {
       youtube: user.youtube,
       twitter: user.twitter,
       customLinks: user.customLinks,
+      featuredProjectId: user.featuredProjectId,
       printers: publicPrinters,
       projects: publicProjects,
       ratingAverage: rating.average,

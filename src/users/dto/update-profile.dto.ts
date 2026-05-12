@@ -5,6 +5,7 @@ import {
   IsOptional,
   IsString,
   IsUrl,
+  IsUUID,
   Max,
   MaxLength,
   Min,
@@ -91,6 +92,10 @@ export class UpdateProfileDto {
   @ValidateNested({ each: true })
   @Type(() => CustomLinkDto)
   customLinks?: { label: string; url: string }[];
+
+  @IsOptional()
+  @IsUUID()
+  featuredProjectId?: string | null;
 
   // ── Nombre del taller ────────────────────────────────────────
   @IsString()

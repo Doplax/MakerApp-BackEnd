@@ -116,6 +116,10 @@ export class User {
   @Column({ type: 'jsonb', nullable: true, default: null })
   customLinks!: { label: string; url: string }[];
 
+  // ── Proyecto destacado del perfil público ──────────────────
+  @Column({ type: 'uuid', nullable: true })
+  featuredProjectId!: string | null;
+
   // ── Datos de facturación ─────────────────────────────────────
   @Column({ nullable: true, length: 150 })
   companyName!: string; // Nombre / Empresa para facturas
