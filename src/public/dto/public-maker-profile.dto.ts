@@ -49,6 +49,10 @@ export class PublicMakerProfileDto {
   printers!: PublicPrinterDto[];
   projects!: PublicProjectDto[];
 
+  // Nº de filamentos públicos del maker (los detalles se obtienen
+  // bajo demanda en GET /public/makers/:id/filaments)
+  filamentCount!: number;
+
   // Valoración del maker (agregado de MakerReview)
   ratingAverage!: number; // 0–5 (decimales)
   ratingCount!: number; // nº de reseñas

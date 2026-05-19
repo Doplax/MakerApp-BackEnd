@@ -14,6 +14,7 @@ import { UpdateUserDto } from './dto/update-user.dto.js';
 import { UpdateProfileDto } from './dto/update-profile.dto.js';
 import { ChangePasswordDto } from './dto/change-password.dto.js';
 import { User } from './entities/user.entity.js';
+import { Filament } from '../filaments/entities/filament.entity.js';
 import { MakerReviewsService } from '../maker-reviews/maker-reviews.service.js';
 
 @Injectable()
@@ -23,6 +24,8 @@ export class UsersService {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    @InjectRepository(Filament)
+    private readonly filamentRepository: Repository<Filament>,
     @Inject(forwardRef(() => MakerReviewsService))
     private readonly makerReviewsService: MakerReviewsService,
   ) {}
@@ -307,7 +310,14 @@ export class UsersService {
         estimatedTime: p.estimatedTime,
       }));
 
-    const rating = await this.makerReviewsService.getMakerRatingSummary(user.id);
+    const [rating, filamentCount] = await Promise.all([
+      this.makerReviewsService.getMakerRatingSummary(user.id),
+      // Contamos solo filamentos públicos del maker. Más barato que cargar
+      // la relación entera y filtrar en memoria.
+      this.filamentRepository.count({
+        where: { createdBy: { id: user.id }, isPublic: true },
+      }),
+    ]);
 
     return {
       id: user.id,
@@ -327,6 +337,7 @@ export class UsersService {
       featuredProjectId: user.featuredProjectId,
       printers: publicPrinters,
       projects: publicProjects,
+      filamentCount,
       ratingAverage: rating.average,
       ratingCount: rating.count,
     };
