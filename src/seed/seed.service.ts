@@ -48,11 +48,13 @@ export class SeedService {
     const doplaxUser =
       savedUsers.find((u) => u.email === 'doplax@gmail.com') || savedUsers[0];
 
-    // Crear filamentos
+    // Crear filamentos — marcamos isPublic:true para que aparezcan en el
+    // perfil público del maker (la entity por defecto los crea privados).
     const savedFilaments: Filament[] = [];
     for (const data of filamentsToSeed) {
       const filament = this.filamentRepository.create({
         ...data,
+        isPublic: true,
         createdBy: doplaxUser,
       });
       savedFilaments.push(await this.filamentRepository.save(filament));
