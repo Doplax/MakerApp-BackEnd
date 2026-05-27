@@ -13,6 +13,8 @@ import { AuthGuard } from '@nestjs/passport';
 import type { Response } from 'express';
 import { AuthService } from './auth.service.js';
 import { RegisterDto } from './dto/register.dto.js';
+import { ForgotPasswordDto } from './dto/forgot-password.dto.js';
+import { ResetPasswordDto } from './dto/reset-password.dto.js';
 import { UpdateProfileDto } from '../users/dto/update-profile.dto.js';
 import { ChangePasswordDto } from '../users/dto/change-password.dto.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
@@ -34,6 +36,16 @@ export class AuthController {
   @Post('register')
   register(@Body() registerDto: RegisterDto) {
     return this.authService.register(registerDto);
+  }
+
+  @Post('forgot-password')
+  forgotPassword(@Body() dto: ForgotPasswordDto) {
+    return this.authService.forgotPassword(dto);
+  }
+
+  @Post('reset-password')
+  resetPassword(@Body() dto: ResetPasswordDto) {
+    return this.authService.resetPassword(dto);
   }
 
   @Get('profile')

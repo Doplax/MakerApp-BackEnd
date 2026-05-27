@@ -193,6 +193,64 @@ export class UsersService {
   }
 
   /**
+   * Guarda el hash del token de reset + expiración usando update() para
+   * evitar que dispare el hook @BeforeUpdate (que re-hashearía la contraseña).
+   */
+  async setPasswordResetToken(
+    userId: string,
+    hashedToken: string,
+    expiresAt: Date,
+  ): Promise<void> {
+    await this.userRepository.update(userId, {
+      passwordResetToken: hashedToken,
+      passwordResetExpiresAt: expiresAt,
+    });
+  }
+
+  /**
+   * Busca un usuario activo a partir del hash del token de recuperación.
+   * Devuelve null si no existe o si el token ha expirado.
+   */
+  async findByPasswordResetToken(
+    hashedToken: string,
+  ): Promise<{ id: string; email: string } | null> {
+    const user = await this.userRepository.findOne({
+      where: { passwordResetToken: hashedToken },
+      select: ['id', 'email', 'isActive', 'passwordResetExpiresAt'],
+    });
+
+    if (!user || !user.isActive) return null;
+    if (
+      !user.passwordResetExpiresAt ||
+      user.passwordResetExpiresAt.getTime() < Date.now()
+    ) {
+      return null;
+    }
+    return { id: user.id, email: user.email };
+  }
+
+  /**
+   * Establece una nueva contraseña y limpia el token de reset.
+   * Carga el password column para que el hook @BeforeUpdate la hashee.
+   */
+  async resetPasswordWithToken(
+    userId: string,
+    newPassword: string,
+  ): Promise<void> {
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+      select: ['id', 'password'],
+    });
+    if (!user) throw new NotFoundException('User not found');
+
+    user.password = newPassword;
+    user.passwordResetToken = null;
+    user.passwordResetExpiresAt = null;
+    await this.userRepository.save(user);
+    this.logger.log(`Password reset for user ${userId}`);
+  }
+
+  /**
    * Devuelve todos los makers activos que tienen coordenadas definidas,
    * con la información mínima necesaria para mostrarlos en el mapa.
    */

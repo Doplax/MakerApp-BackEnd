@@ -28,6 +28,12 @@ export class User {
   @Column({ select: false, nullable: true })
   password!: string;
 
+  @Column({ select: false, nullable: true, type: 'varchar', length: 64 })
+  passwordResetToken!: string | null;
+
+  @Column({ select: false, nullable: true, type: 'timestamp' })
+  passwordResetExpiresAt!: Date | null;
+
   @Column({ nullable: true, unique: true })
   googleId!: string;
 
