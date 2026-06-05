@@ -49,4 +49,22 @@ export class PublicController {
       throw new NotFoundException(`Maker with ID ${id} not found`);
     }
   }
+
+  @Get('makers/:id/projects')
+  async getPublicMakerProjects(@Param('id', ParseUUIDPipe) id: string) {
+    try {
+      return await this.usersService.findPublicProjects(id);
+    } catch (error) {
+      if (error instanceof NotFoundException) throw error;
+      throw new NotFoundException(`Maker with ID ${id} not found`);
+    }
+  }
+
+  @Get('makers/:id/projects/:projectId')
+  async getPublicMakerProject(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('projectId', ParseUUIDPipe) projectId: string,
+  ) {
+    return this.usersService.findPublicProject(id, projectId);
+  }
 }

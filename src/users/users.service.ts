@@ -366,6 +366,7 @@ export class UsersService {
         imageUrl: p.imageUrl,
         estimatedWeight: p.estimatedWeight,
         estimatedTime: p.estimatedTime,
+        price: p.price,
       }));
 
     const [rating, filamentCount] = await Promise.all([
@@ -398,6 +399,59 @@ export class UsersService {
       filamentCount,
       ratingAverage: rating.average,
       ratingCount: rating.count,
+    };
+  }
+
+  /** Lista de proyectos públicos de un maker (para la página de proyectos disponibles). */
+  async findPublicProjects(makerId: string) {
+    const user = await this.userRepository.findOne({
+      where: { id: makerId },
+      relations: ['projects'],
+    });
+    if (!user) throw new NotFoundException(`Maker with ID ${makerId} not found`);
+
+    return (user.projects || [])
+      .filter((p) => p.isPublic)
+      .map((p) => ({
+        id: p.id,
+        name: p.name,
+        description: p.description,
+        imageUrl: p.imageUrl,
+        estimatedWeight: p.estimatedWeight,
+        estimatedTime: p.estimatedTime,
+        price: p.price,
+      }));
+  }
+
+  /** Detalle de un proyecto público concreto + datos básicos del maker. */
+  async findPublicProject(makerId: string, projectId: string) {
+    const user = await this.userRepository.findOne({
+      where: { id: makerId },
+      relations: ['projects'],
+    });
+    if (!user) throw new NotFoundException(`Maker with ID ${makerId} not found`);
+
+    const project = (user.projects || []).find(
+      (p) => p.id === projectId && p.isPublic,
+    );
+    if (!project) {
+      throw new NotFoundException(`Project with ID ${projectId} not found`);
+    }
+
+    return {
+      id: project.id,
+      name: project.name,
+      description: project.description,
+      imageUrl: project.imageUrl,
+      estimatedWeight: project.estimatedWeight,
+      estimatedTime: project.estimatedTime,
+      price: project.price,
+      designType: project.designType,
+      maker: {
+        id: user.id,
+        fullName: user.fullName,
+        avatarUrl: user.avatarUrl,
+      },
     };
   }
 }

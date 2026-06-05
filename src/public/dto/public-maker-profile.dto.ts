@@ -20,6 +20,7 @@ export class PublicProjectDto {
   imageUrl?: string;
   estimatedWeight?: number;
   estimatedTime?: number;
+  price?: number | null;
 }
 
 export class PublicMakerProfileDto {
