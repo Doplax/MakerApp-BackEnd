@@ -21,6 +21,7 @@ import { MakerReviewsModule } from './maker-reviews/maker-reviews.module.js';
 import { ChatModule } from './chat/chat.module.js';
 import { CloudinaryModule } from './cloudinary/cloudinary.module.js';
 import { MailModule } from './mail/mail.module.js';
+import { NotificationsModule } from './notifications/notifications.module.js';
 
 @Module({
   imports: [
@@ -59,6 +60,7 @@ import { MailModule } from './mail/mail.module.js';
     ChatModule,
     CloudinaryModule,
     MailModule,
+    NotificationsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
