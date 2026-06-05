@@ -5,6 +5,7 @@ import { Purchase } from './entities/purchase.entity.js';
 import { PurchaseStatus } from './enums/purchase-status.enum.js';
 import { Project } from '../projects/entities/project.entity.js';
 import { User } from '../users/entities/user.entity.js';
+import { MailService } from '../mail/mail.service.js';
 
 interface RecordPurchaseInput {
   paymentIntentId: string;
@@ -26,6 +27,7 @@ export class PurchasesService {
     private readonly projectRepo: Repository<Project>,
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
+    private readonly mailService: MailService,
   ) {}
 
   /**
@@ -73,7 +75,30 @@ export class PurchasesService {
       status: PurchaseStatus.SUCCEEDED,
     });
 
-    return this.purchaseRepo.save(purchase);
+    const saved = await this.purchaseRepo.save(purchase);
+
+    // Email de confirmación al comprador — no bloqueante: si falla el SMTP
+    // no rompemos el registro de la compra (Stripe ya la ha cobrado).
+    if (buyer?.email) {
+      // Stripe envía el importe en la unidad mínima (céntimos) → a euros.
+      const price = input.amount / 100;
+      this.mailService
+        .sendOrderConfirmation(
+          buyer.email,
+          maker.fullName,
+          project?.name ?? 'Pedido',
+          price,
+        )
+        .catch((err) => {
+          this.logger.warn(
+            `No se pudo enviar la confirmación de pedido a ${buyer.email}: ${
+              (err as Error)?.message ?? err
+            }`,
+          );
+        });
+    }
+
+    return saved;
   }
 
   async findById(id: string): Promise<Purchase | null> {
