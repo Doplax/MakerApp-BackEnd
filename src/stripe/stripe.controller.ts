@@ -44,7 +44,7 @@ export class StripeController {
   @Get('connect/status')
   @UseGuards(AuthGuard('jwt'))
   async status(@CurrentUser() user: User) {
-    if (!user.stripeAccountId) {
+    if (!this.stripeService.isConfigured() || !user.stripeAccountId) {
       return { connected: false };
     }
     const s = await this.stripeService.getAccountStatus(user.stripeAccountId);

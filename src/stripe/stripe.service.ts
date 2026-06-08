@@ -1,4 +1,9 @@
-import { Injectable, Logger, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  BadRequestException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Stripe from 'stripe';
 import { PurchasesService } from '../purchases/purchases.service.js';
@@ -19,14 +24,20 @@ export class StripeService {
     this.feePercent = Number(config.get('STRIPE_PLATFORM_FEE_PERCENT') ?? 5);
   }
 
+  /** true si hay una secret key real configurada (no vacía ni el placeholder). */
+  isConfigured(): boolean {
+    const key = this.config.get<string>('STRIPE_SECRET_KEY');
+    return !!key && /^sk_(test|live)_/.test(key) && !key.includes('xxx');
+  }
+
   private get stripe(): StripeClient {
     if (!this._stripe) {
-      const key = this.config.get<string>('STRIPE_SECRET_KEY');
-      if (!key) {
-        throw new BadRequestException(
+      if (!this.isConfigured()) {
+        throw new ServiceUnavailableException(
           'Stripe no está configurado en este entorno',
         );
       }
+      const key = this.config.getOrThrow<string>('STRIPE_SECRET_KEY');
       this._stripe = new Stripe(key, { apiVersion: '2026-03-25.dahlia' });
     }
     return this._stripe;
