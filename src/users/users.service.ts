@@ -263,6 +263,7 @@ export class UsersService {
       location: string;
       latitude: number;
       longitude: number;
+      hideDirectionsButton: boolean;
     }[]
   > {
     const makers = await this.userRepository
@@ -275,6 +276,7 @@ export class UsersService {
         'u.location',
         'u.latitude',
         'u.longitude',
+        'u.hideDirectionsButton',
       ])
       .where('u.isActive = :active', { active: true })
       .andWhere('u.latitude IS NOT NULL')
@@ -289,6 +291,7 @@ export class UsersService {
       location: u.location ?? null,
       latitude: Number(u.latitude),
       longitude: Number(u.longitude),
+      hideDirectionsButton: !!u.hideDirectionsButton,
     }));
   }
 

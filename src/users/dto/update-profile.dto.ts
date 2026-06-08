@@ -172,6 +172,10 @@ export class UpdateProfileDto {
   @IsOptional()
   chargesVat?: boolean;
 
+  @IsBoolean()
+  @IsOptional()
+  hideDirectionsButton?: boolean;
+
   @IsNumber()
   @IsOptional()
   @Min(0)

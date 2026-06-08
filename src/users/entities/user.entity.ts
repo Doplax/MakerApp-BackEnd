@@ -167,6 +167,9 @@ export class User {
   @Column({ default: true })
   chargesVat!: boolean; // ¿Factura IVA?
 
+  @Column({ default: false })
+  hideDirectionsButton!: boolean; // oculta el botón "Cómo llegar" del mapa
+
   @Column({
     type: 'decimal',
     precision: 5,
