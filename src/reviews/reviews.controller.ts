@@ -17,15 +17,10 @@ import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { User } from '../users/entities/user.entity.js';
 
 @Controller('reviews')
-@UseGuards(AuthGuard('jwt'))
 export class ReviewsController {
   constructor(private readonly reviewsService: ReviewsService) {}
 
-  @Post()
-  create(@Body() dto: CreateReviewDto, @CurrentUser() user: User) {
-    return this.reviewsService.create(dto, user);
-  }
-
+  // ── Lectura pública (para fichas públicas de proyecto) ───────
   @Get('project/:projectId')
   findByProject(@Param('projectId', ParseUUIDPipe) projectId: string) {
     return this.reviewsService.findByProject(projectId);
@@ -36,7 +31,15 @@ export class ReviewsController {
     return this.reviewsService.averageRating(projectId);
   }
 
+  // ── Mutaciones (requieren autenticación) ─────────────────────
+  @Post()
+  @UseGuards(AuthGuard('jwt'))
+  create(@Body() dto: CreateReviewDto, @CurrentUser() user: User) {
+    return this.reviewsService.create(dto, user);
+  }
+
   @Patch(':id')
+  @UseGuards(AuthGuard('jwt'))
   update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateReviewDto,
@@ -46,6 +49,7 @@ export class ReviewsController {
   }
 
   @Delete(':id')
+  @UseGuards(AuthGuard('jwt'))
   remove(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: User) {
     return this.reviewsService.remove(id, user);
   }

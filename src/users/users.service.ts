@@ -430,7 +430,7 @@ export class UsersService {
   async findPublicProject(makerId: string, projectId: string) {
     const user = await this.userRepository.findOne({
       where: { id: makerId },
-      relations: ['projects'],
+      relations: ['projects', 'projects.filaments'],
     });
     if (!user) throw new NotFoundException(`Maker with ID ${makerId} not found`);
 
@@ -450,6 +450,7 @@ export class UsersService {
       estimatedTime: project.estimatedTime,
       price: project.price,
       designType: project.designType,
+      material: project.filaments?.[0]?.material ?? null,
       maker: {
         id: user.id,
         fullName: user.fullName,
