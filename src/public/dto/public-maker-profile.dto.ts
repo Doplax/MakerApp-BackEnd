@@ -23,6 +23,18 @@ export class PublicProjectDto {
   price?: number | null;
 }
 
+export class PublicFilamentDto {
+  id!: string;
+  brand!: string;
+  material!: string;
+  color!: string;
+  colorHex!: string | null;
+  remainingWeight!: number;
+  totalWeight!: number;
+  status!: string;
+  imageUrl?: string;
+}
+
 export class PublicMakerProfileDto {
   id!: string;
   fullName!: string;
@@ -50,8 +62,9 @@ export class PublicMakerProfileDto {
   printers!: PublicPrinterDto[];
   projects!: PublicProjectDto[];
 
-  // Nº de filamentos públicos del maker (los detalles se obtienen
-  // bajo demanda en GET /public/makers/:id/filaments)
+  // Filamentos públicos del maker (incluidos en el perfil, igual que printers
+  // y projects). El endpoint GET /public/makers/:id/filaments sigue disponible.
+  filaments!: PublicFilamentDto[];
   filamentCount!: number;
 
   // Valoración del maker (agregado de MakerReview)

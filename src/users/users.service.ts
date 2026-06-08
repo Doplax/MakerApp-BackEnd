@@ -300,25 +300,26 @@ export class UsersService {
    * Carga solo información pública y relaciones públicas (printers, projects)
    */
   async findPublicFilaments(makerId: string) {
-    const user = await this.userRepository.findOne({
-      where: { id: makerId },
-      relations: ['filaments'],
+    // Consultamos los filamentos directamente por createdBy + isPublic, igual
+    // que el contador de findPublicProfile. Antes se cargaba la relación
+    // user.filaments y se filtraba en memoria, lo que podía devolver vacío
+    // mientras el contador (vía filamentRepository) sí los encontraba.
+    const filaments = await this.filamentRepository.find({
+      where: { createdBy: { id: makerId }, isPublic: true },
+      order: { createdAt: 'DESC' },
     });
-    if (!user) throw new NotFoundException(`Maker with ID ${makerId} not found`);
 
-    return (user.filaments || [])
-      .filter((f) => f.isPublic)
-      .map((f) => ({
-        id: f.id,
-        brand: f.brand,
-        material: f.material,
-        color: f.color,
-        colorHex: f.colorHex,
-        remainingWeight: f.remainingWeight,
-        totalWeight: f.totalWeight,
-        status: f.status,
-        imageUrl: f.imageUrl,
-      }));
+    return filaments.map((f) => ({
+      id: f.id,
+      brand: f.brand,
+      material: f.material,
+      color: f.color,
+      colorHex: f.colorHex,
+      remainingWeight: f.remainingWeight,
+      totalWeight: f.totalWeight,
+      status: f.status,
+      imageUrl: f.imageUrl,
+    }));
   }
 
   async findPublicProfile(id: string) {
@@ -372,14 +373,28 @@ export class UsersService {
         price: p.price,
       }));
 
-    const [rating, filamentCount] = await Promise.all([
+    // Incluimos los filamentos públicos en el propio perfil (igual que printers
+    // y projects) para que el frontend no tenga que hacer una petición aparte
+    // (la que dejaba el loader colgado y la sección sin cards).
+    const [rating, publicFilamentEntities] = await Promise.all([
       this.makerReviewsService.getMakerRatingSummary(user.id),
-      // Contamos solo filamentos públicos del maker. Más barato que cargar
-      // la relación entera y filtrar en memoria.
-      this.filamentRepository.count({
+      this.filamentRepository.find({
         where: { createdBy: { id: user.id }, isPublic: true },
+        order: { createdAt: 'DESC' },
       }),
     ]);
+
+    const filaments = publicFilamentEntities.map((f) => ({
+      id: f.id,
+      brand: f.brand,
+      material: f.material,
+      color: f.color,
+      colorHex: f.colorHex,
+      remainingWeight: f.remainingWeight,
+      totalWeight: f.totalWeight,
+      status: f.status,
+      imageUrl: f.imageUrl,
+    }));
 
     return {
       id: user.id,
@@ -399,7 +414,8 @@ export class UsersService {
       featuredProjectId: user.featuredProjectId,
       printers: publicPrinters,
       projects: publicProjects,
-      filamentCount,
+      filaments,
+      filamentCount: filaments.length,
       ratingAverage: rating.average,
       ratingCount: rating.count,
     };
