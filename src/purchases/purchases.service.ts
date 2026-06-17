@@ -6,6 +6,8 @@ import { PurchaseStatus } from './enums/purchase-status.enum.js';
 import { Project } from '../projects/entities/project.entity.js';
 import { User } from '../users/entities/user.entity.js';
 import { MailService } from '../mail/mail.service.js';
+import { NotificationsService } from '../notifications/notifications.service.js';
+import { NotificationType } from '../notifications/enums/notification-type.enum.js';
 
 interface RecordPurchaseInput {
   paymentIntentId: string;
@@ -28,6 +30,7 @@ export class PurchasesService {
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
     private readonly mailService: MailService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   /**
@@ -96,6 +99,34 @@ export class PurchasesService {
             }`,
           );
         });
+    }
+
+    // Notifica al maker que ha vendido un proyecto (no bloqueante).
+    try {
+      const price = input.amount / 100;
+      const buyerName = buyer?.fullName ?? 'Un cliente';
+      const projectName = project?.name ?? 'tu proyecto';
+      await this.notifications.create(maker.id, {
+        type: NotificationType.ORDER_CONFIRMED,
+        title: 'Nueva venta',
+        body: `${buyerName} ha comprado «${projectName}» por ${price} ${input.currency.toUpperCase()}.`,
+        link: '/home/finances',
+        data: {
+          purchaseId: saved.id,
+          projectId: project?.id ?? null,
+          projectName,
+          buyerName,
+          amount: price,
+          currency: input.currency,
+        },
+        dedupeKey: `purchase:${saved.id}`,
+      });
+    } catch (err) {
+      this.logger.warn(
+        `No se pudo crear la notificación de venta: ${
+          (err as Error)?.message ?? err
+        }`,
+      );
     }
 
     return saved;

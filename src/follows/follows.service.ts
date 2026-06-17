@@ -1,5 +1,6 @@
 import {
   Injectable,
+  Logger,
   BadRequestException,
   NotFoundException,
 } from '@nestjs/common';
@@ -7,14 +8,19 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Follow } from './entities/follow.entity.js';
 import { User } from '../users/entities/user.entity.js';
+import { NotificationsService } from '../notifications/notifications.service.js';
+import { NotificationType } from '../notifications/enums/notification-type.enum.js';
 
 @Injectable()
 export class FollowsService {
+  private readonly logger = new Logger(FollowsService.name);
+
   constructor(
     @InjectRepository(Follow)
     private readonly followRepo: Repository<Follow>,
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
+    private readonly notifications: NotificationsService,
   ) {}
 
   async follow(
@@ -47,6 +53,29 @@ export class FollowsService {
     });
 
     await this.followRepo.save(follow);
+
+    // Notifica al maker que tiene un nuevo seguidor (no bloqueante).
+    try {
+      const follower = await this.userRepo.findOne({
+        where: { id: followerId },
+      });
+      const name = follower?.fullName ?? 'Alguien';
+      await this.notifications.create(followingId, {
+        type: NotificationType.FOLLOW_RECEIVED,
+        title: 'Tienes un nuevo seguidor',
+        body: `${name} ha empezado a seguirte.`,
+        link: `/public/maker/${followerId}`,
+        data: { followerId, followerName: name },
+        dedupeKey: `follow:${followerId}:${followingId}`,
+      });
+    } catch (err) {
+      this.logger.warn(
+        `No se pudo crear la notificación de seguidor: ${
+          (err as Error)?.message ?? err
+        }`,
+      );
+    }
+
     return { message: 'Ahora sigues a este maker' };
   }
 

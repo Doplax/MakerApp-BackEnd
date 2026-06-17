@@ -7,5 +7,7 @@ export enum NotificationType {
   MAINTENANCE_DUE = 'maintenance_due',
   ORDER_CONFIRMED = 'order_confirmed',
   CHAT_MESSAGE = 'chat_message',
+  FOLLOW_RECEIVED = 'follow_received',
+  REVIEW_RECEIVED = 'review_received',
   SYSTEM = 'system',
 }

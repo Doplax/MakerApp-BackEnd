@@ -4,9 +4,10 @@ import { Follow } from './entities/follow.entity.js';
 import { User } from '../users/entities/user.entity.js';
 import { FollowsService } from './follows.service.js';
 import { FollowsController } from './follows.controller.js';
+import { NotificationsModule } from '../notifications/notifications.module.js';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Follow, User])],
+  imports: [TypeOrmModule.forFeature([Follow, User]), NotificationsModule],
   controllers: [FollowsController],
   providers: [FollowsService],
   exports: [FollowsService],
