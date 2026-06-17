@@ -3,6 +3,7 @@ import {
   Column,
   PrimaryGeneratedColumn,
   CreateDateColumn,
+  DeleteDateColumn,
   ManyToOne,
   JoinColumn,
   Index,
@@ -59,4 +60,12 @@ export class Notification {
 
   @CreateDateColumn()
   createdAt!: Date;
+
+  /**
+   * Soft-delete: al "borrar" una notificación se marca esta fecha en lugar de
+   * eliminarla de la BD. La bandeja excluye las archivadas; el histórico las
+   * incluye (withDeleted). Así se conserva el historial permanente.
+   */
+  @DeleteDateColumn({ type: 'timestamp', nullable: true })
+  deletedAt!: Date | null;
 }

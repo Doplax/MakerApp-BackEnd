@@ -30,6 +30,13 @@ export class NotificationsController {
     return { count };
   }
 
+  /** Histórico permanente: incluye también las notificaciones archivadas. */
+  @Get('history')
+  async history(@CurrentUser() user: User) {
+    const items = await this.notificationsService.findHistory(user.id);
+    return { items };
+  }
+
   @Patch('read-all')
   markAllRead(@CurrentUser() user: User) {
     return this.notificationsService.markAllRead(user.id);
@@ -41,6 +48,12 @@ export class NotificationsController {
     @CurrentUser() user: User,
   ) {
     return this.notificationsService.markRead(id, user.id);
+  }
+
+  /** Archiva todas las notificaciones activas del usuario. */
+  @Delete()
+  removeAll(@CurrentUser() user: User) {
+    return this.notificationsService.removeAll(user.id);
   }
 
   @Delete(':id')

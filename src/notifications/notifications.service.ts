@@ -24,6 +24,7 @@ export interface InboxResult {
 export class NotificationsService {
   private readonly logger = new Logger(NotificationsService.name);
   private static readonly MAX_ITEMS = 50;
+  private static readonly MAX_HISTORY = 200;
 
   constructor(
     @InjectRepository(Notification)
@@ -40,8 +41,12 @@ export class NotificationsService {
     input: CreateNotificationInput,
   ): Promise<Notification> {
     if (input.dedupeKey) {
+      // withDeleted: si ya se notificó este ciclo (aunque se haya archivado),
+      // no se vuelve a crear. Así borrar una alerta la descarta para su ciclo
+      // y no se acumulan duplicados en el histórico.
       const existing = await this.repo.findOne({
         where: { userId, dedupeKey: input.dedupeKey },
+        withDeleted: true,
       });
       if (existing) return existing;
     }
@@ -59,11 +64,22 @@ export class NotificationsService {
     return this.repo.save(notification);
   }
 
+  /** Bandeja activa: excluye las archivadas (soft-deleted) automáticamente. */
   async findForUser(userId: string): Promise<Notification[]> {
     return this.repo.find({
       where: { userId },
       order: { createdAt: 'DESC' },
       take: NotificationsService.MAX_ITEMS,
+    });
+  }
+
+  /** Histórico permanente: incluye también las archivadas (withDeleted). */
+  async findHistory(userId: string): Promise<Notification[]> {
+    return this.repo.find({
+      where: { userId },
+      order: { createdAt: 'DESC' },
+      take: NotificationsService.MAX_HISTORY,
+      withDeleted: true,
     });
   }
 
@@ -96,12 +112,19 @@ export class NotificationsService {
     return { updated: result.affected ?? 0 };
   }
 
+  /** Archiva una notificación (soft-delete): sale de la bandeja, sigue en el histórico. */
   async remove(id: string, userId: string): Promise<{ message: string }> {
-    const result = await this.repo.delete({ id, userId });
+    const result = await this.repo.softDelete({ id, userId });
     if (!result.affected) {
       throw new NotFoundException('Notificación no encontrada');
     }
-    return { message: 'Notificación eliminada' };
+    return { message: 'Notificación archivada' };
+  }
+
+  /** Archiva todas las notificaciones activas del usuario (soft-delete masivo). */
+  async removeAll(userId: string): Promise<{ archived: number }> {
+    const result = await this.repo.softDelete({ userId });
+    return { archived: result.affected ?? 0 };
   }
 
   /**
