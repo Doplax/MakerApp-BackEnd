@@ -7,6 +7,7 @@ import {
   OneToMany,
   BeforeInsert,
   BeforeUpdate,
+  AfterLoad,
 } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { UserRole } from '../../common/enums/index.js';
@@ -198,12 +199,30 @@ export class User {
   @UpdateDateColumn()
   updatedAt!: Date;
 
+  // Valor de `password` tal como vino de la BD (si se cargó). Sirve para no
+  // re-hashear una contraseña que no ha cambiado. No es una columna.
+  private originalPassword?: string;
+
+  @AfterLoad()
+  private trackOriginalPassword(): void {
+    this.originalPassword = this.password;
+  }
+
   @BeforeInsert()
   @BeforeUpdate()
   async hashPassword() {
-    if (this.password) {
-      this.password = await bcrypt.hash(this.password, 10);
+    // No hashear si: no hay contraseña, no ha cambiado respecto a la cargada, o
+    // ya es un hash bcrypt. Esto último evita el doble hash en CUALQUIER flujo
+    // (p. ej. cargar un user con su password y volver a hacer save()).
+    if (
+      !this.password ||
+      this.password === this.originalPassword ||
+      this.password.startsWith('$2')
+    ) {
+      return;
     }
+    this.password = await bcrypt.hash(this.password, 10);
+    this.originalPassword = this.password;
   }
 
   async checkPassword(plainPassword: string): Promise<boolean> {
