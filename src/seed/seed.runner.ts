@@ -9,6 +9,15 @@ import { Filament } from '../filaments/entities/filament.entity.js';
 import { Printer } from '../printers/entities/printer.entity.js';
 import { Project } from '../projects/entities/project.entity.js';
 import { PrintLog } from '../print-logs/entities/print-log.entity.js';
+import { Review } from '../reviews/entities/review.entity.js';
+import { Follow } from '../follows/entities/follow.entity.js';
+import { Notification } from '../notifications/entities/notification.entity.js';
+import { MakerReview } from '../maker-reviews/entities/maker-review.entity.js';
+import { Purchase } from '../purchases/entities/purchase.entity.js';
+import { FilamentCatalog } from '../filament-catalog/entities/filament-catalog.entity.js';
+import { Conversation } from '../chat/entities/conversation.entity.js';
+import { ConversationParticipant } from '../chat/entities/conversation-participant.entity.js';
+import { Message } from '../chat/entities/message.entity.js';
 
 @Module({
   imports: [
@@ -22,7 +31,22 @@ import { PrintLog } from '../print-logs/entities/print-log.entity.js';
         username: process.env.DB_USERNAME || 'maker_user',
         password: process.env.DB_PASSWORD || 'maker_password',
         database: process.env.DB_NAME || 'maker_db',
-        entities: [User, Filament, Printer, Project, PrintLog],
+        entities: [
+          User,
+          Filament,
+          Printer,
+          Project,
+          PrintLog,
+          Review,
+          Follow,
+          Notification,
+          MakerReview,
+          Purchase,
+          FilamentCatalog,
+          Conversation,
+          ConversationParticipant,
+          Message,
+        ],
         synchronize: true,
         ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false,
       }),

@@ -6,6 +6,9 @@ import { Printer } from '../printers/entities/printer.entity.js';
 import { Project } from '../projects/entities/project.entity.js';
 import { PrintLog } from '../print-logs/entities/print-log.entity.js';
 import { User } from '../users/entities/user.entity.js';
+import { Conversation } from '../chat/entities/conversation.entity.js';
+import { ConversationParticipant } from '../chat/entities/conversation-participant.entity.js';
+import { Message } from '../chat/entities/message.entity.js';
 import { usersToSeed } from './data/users.seed.js';
 import { filamentsToSeed } from './data/filaments.seed.js';
 import { printersToSeed } from './data/printers.seed.js';
@@ -27,15 +30,26 @@ export class SeedService {
     private readonly projectRepository: Repository<Project>,
     @InjectRepository(PrintLog)
     private readonly printLogRepository: Repository<PrintLog>,
+    @InjectRepository(Conversation)
+    private readonly conversationRepository: Repository<Conversation>,
+    @InjectRepository(ConversationParticipant)
+    private readonly participantRepository: Repository<ConversationParticipant>,
+    @InjectRepository(Message)
+    private readonly messageRepository: Repository<Message>,
   ) {}
 
   async executeSeed() {
-    // Limpiar datos existentes (order matters due to foreign keys)
-    await this.printLogRepository.createQueryBuilder().delete().execute();
-    await this.filamentRepository.createQueryBuilder().delete().execute();
-    await this.printerRepository.createQueryBuilder().delete().execute();
-    await this.projectRepository.createQueryBuilder().delete().execute();
-    await this.userRepository.createQueryBuilder().delete().execute();
+    // Limpieza robusta con TRUNCATE … CASCADE: vacía también las tablas de
+    // unión (project_filaments) y cualquier dependiente por FK, sin depender
+    // del orden. (filament_catalog no se toca: es catálogo de referencia.)
+    await this.userRepository.manager.query(`
+      TRUNCATE TABLE
+        messages, conversation_participants, conversations,
+        print_logs, project_filaments, projects, filaments, printers,
+        reviews, follows, maker_reviews, notifications, purchases,
+        users
+      CASCADE
+    `);
 
     // Crear usuarios desde seed data
     const savedUsers: User[] = [];
@@ -94,9 +108,73 @@ export class SeedService {
       await this.printLogRepository.save(printLog);
     }
 
+    // ── Chat: conversaciones de ejemplo (para probar el chat en local) ──
+    const findUser = (email: string): User | undefined =>
+      savedUsers.find((u) => u.email === email);
+
+    const seedConversation = async (
+      a: User,
+      b: User,
+      msgs: { from: 'a' | 'b'; body: string; minutesAgo: number }[],
+    ): Promise<void> => {
+      const conv = await this.conversationRepository.save(
+        this.conversationRepository.create({ lastMessageAt: null }),
+      );
+      await this.participantRepository.save([
+        this.participantRepository.create({
+          conversation: conv,
+          user: a,
+          lastReadAt: new Date(),
+        }),
+        this.participantRepository.create({
+          conversation: conv,
+          user: b,
+          lastReadAt: null,
+        }),
+      ]);
+      let last: Date | null = null;
+      for (const m of msgs) {
+        const at = new Date(Date.now() - m.minutesAgo * 60_000);
+        await this.messageRepository.save(
+          this.messageRepository.create({
+            conversation: conv,
+            sender: m.from === 'a' ? a : b,
+            body: m.body,
+            createdAt: at,
+          }),
+        );
+        last = at;
+      }
+      conv.lastMessageAt = last;
+      await this.conversationRepository.save(conv);
+    };
+
+    const ana = findUser('ana.maker@example.com');
+    const mikel = findUser('mikel.3d@example.com');
+    let conversationsCount = 0;
+
+    if (ana) {
+      await seedConversation(doplaxUser, ana, [
+        { from: 'b', body: '¡Hola! Vi tu perfil, haces unas piezas geniales 👏', minutesAgo: 180 },
+        { from: 'a', body: '¡Gracias Ana! ¿Necesitas algo en concreto?', minutesAgo: 178 },
+        { from: 'b', body: 'Sí, busco una pieza funcional en PETG. ¿Me harías un presupuesto?', minutesAgo: 65 },
+        { from: 'a', body: 'Claro 😊 Pásame las medidas y te digo precio.', minutesAgo: 60 },
+      ]);
+      conversationsCount++;
+    }
+
+    if (mikel) {
+      await seedConversation(doplaxUser, mikel, [
+        { from: 'b', body: 'Buenas, ¿tienes filamento ASA en stock?', minutesAgo: 40 },
+        { from: 'a', body: 'Ahora mismo no, pero me llega esta semana.', minutesAgo: 35 },
+        { from: 'b', body: 'Genial, avísame cuando llegue 🙌', minutesAgo: 34 },
+      ]);
+      conversationsCount++;
+    }
+
     this.logger.log('Seed executed successfully!');
     this.logger.log(
-      `Created: ${savedUsers.length} users, ${savedFilaments.length} filaments, ${savedPrinters.length} printers, ${savedProjects.length} projects, ${printLogsToSeed.length} print logs`,
+      `Created: ${savedUsers.length} users, ${savedFilaments.length} filaments, ${savedPrinters.length} printers, ${savedProjects.length} projects, ${printLogsToSeed.length} print logs, ${conversationsCount} conversations`,
     );
 
     return {
