@@ -3,6 +3,9 @@
 /node_modules
 /build
 
+# Backups locales de la BD (contienen datos de usuarios y hashes) — nunca commitear
+backup-neon-*.json
+
 # Logs
 logs
 *.log
