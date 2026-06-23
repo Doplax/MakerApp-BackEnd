@@ -70,4 +70,7 @@ export class PublicMakerProfileDto {
   // Valoración del maker (agregado de MakerReview)
   ratingAverage!: number; // 0–5 (decimales)
   ratingCount!: number; // nº de reseñas
+
+  // Horas de impresión completadas en los últimos 30 días (para el perfil).
+  monthlyPrintHours!: number;
 }

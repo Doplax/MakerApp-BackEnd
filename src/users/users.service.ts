@@ -15,6 +15,8 @@ import { UpdateProfileDto } from './dto/update-profile.dto.js';
 import { ChangePasswordDto } from './dto/change-password.dto.js';
 import { User } from './entities/user.entity.js';
 import { Filament } from '../filaments/entities/filament.entity.js';
+import { PrintLog } from '../print-logs/entities/print-log.entity.js';
+import { PrintStatus } from '../common/enums/index.js';
 import { MakerReviewsService } from '../maker-reviews/maker-reviews.service.js';
 
 @Injectable()
@@ -26,6 +28,8 @@ export class UsersService {
     private readonly userRepository: Repository<User>,
     @InjectRepository(Filament)
     private readonly filamentRepository: Repository<Filament>,
+    @InjectRepository(PrintLog)
+    private readonly printLogRepository: Repository<PrintLog>,
     @Inject(forwardRef(() => MakerReviewsService))
     private readonly makerReviewsService: MakerReviewsService,
   ) {}
@@ -376,13 +380,27 @@ export class UsersService {
     // Incluimos los filamentos públicos en el propio perfil (igual que printers
     // y projects) para que el frontend no tenga que hacer una petición aparte
     // (la que dejaba el loader colgado y la sección sin cards).
-    const [rating, publicFilamentEntities] = await Promise.all([
+    const since = new Date();
+    since.setDate(since.getDate() - 30);
+
+    const [rating, publicFilamentEntities, printAgg] = await Promise.all([
       this.makerReviewsService.getMakerRatingSummary(user.id),
       this.filamentRepository.find({
         where: { createdBy: { id: user.id }, isPublic: true },
         order: { createdAt: 'DESC' },
       }),
+      this.printLogRepository
+        .createQueryBuilder('pl')
+        .select('COALESCE(SUM(pl.printDuration), 0)', 'minutes')
+        .where('pl.createdBy = :userId', { userId: user.id })
+        .andWhere('pl.status = :status', { status: PrintStatus.COMPLETED })
+        .andWhere('pl.updatedAt >= :since', { since })
+        .getRawOne<{ minutes: string }>(),
     ]);
+
+    const monthlyPrintHours = printAgg?.minutes
+      ? Math.round((parseFloat(printAgg.minutes) / 60) * 10) / 10
+      : 0;
 
     const filaments = publicFilamentEntities.map((f) => ({
       id: f.id,
@@ -418,6 +436,7 @@ export class UsersService {
       filamentCount: filaments.length,
       ratingAverage: rating.average,
       ratingCount: rating.count,
+      monthlyPrintHours,
     };
   }
 
