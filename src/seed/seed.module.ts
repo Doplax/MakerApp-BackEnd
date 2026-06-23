@@ -10,6 +10,11 @@ import { PrintLog } from '../print-logs/entities/print-log.entity.js';
 import { Conversation } from '../chat/entities/conversation.entity.js';
 import { ConversationParticipant } from '../chat/entities/conversation-participant.entity.js';
 import { Message } from '../chat/entities/message.entity.js';
+import { Purchase } from '../purchases/entities/purchase.entity.js';
+import { Review } from '../reviews/entities/review.entity.js';
+import { MakerReview } from '../maker-reviews/entities/maker-review.entity.js';
+import { Follow } from '../follows/entities/follow.entity.js';
+import { Notification } from '../notifications/entities/notification.entity.js';
 
 @Module({
   imports: [
@@ -22,6 +27,11 @@ import { Message } from '../chat/entities/message.entity.js';
       Conversation,
       ConversationParticipant,
       Message,
+      Purchase,
+      Review,
+      MakerReview,
+      Follow,
+      Notification,
     ]),
   ],
   controllers: [SeedController],
