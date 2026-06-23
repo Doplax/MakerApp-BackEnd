@@ -10,6 +10,7 @@ import { Conversation } from './entities/conversation.entity.js';
 import { ConversationParticipant } from './entities/conversation-participant.entity.js';
 import { Message } from './entities/message.entity.js';
 import { User } from '../users/entities/user.entity.js';
+import { ChatGateway } from './chat.gateway.js';
 
 export interface ConversationSummary {
   id: string;
@@ -50,6 +51,7 @@ export class ChatService {
     private readonly messageRepo: Repository<Message>,
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
+    private readonly gateway: ChatGateway,
   ) {}
 
   /** Proyecta un Message a su vista pública (solo datos básicos del emisor). */
@@ -271,7 +273,17 @@ export class ChatService {
     c.lastMessageAt = saved.createdAt;
     await this.conversationRepo.save(c);
 
-    return this.toMessageView(saved);
+    const view = this.toMessageView(saved);
+    // Tiempo real: avisa al resto de participantes del nuevo mensaje.
+    for (const p of c.participants) {
+      if (p.user.id !== currentUser.id) {
+        this.gateway.emitMessage(p.user.id, {
+          conversationId: c.id,
+          message: view,
+        });
+      }
+    }
+    return view;
   }
 
   async markAsRead(currentUser: User, conversationId: string): Promise<void> {
@@ -286,6 +298,19 @@ export class ChatService {
     }
     participant.lastReadAt = new Date();
     await this.participantRepo.save(participant);
+
+    // Tiempo real: avisa a los demás participantes (recibos de lectura).
+    const others = await this.participantRepo.find({
+      where: { conversation: { id: conversationId } },
+    });
+    for (const p of others) {
+      if (p.user.id !== currentUser.id) {
+        this.gateway.emitRead(p.user.id, {
+          conversationId,
+          readerId: currentUser.id,
+        });
+      }
+    }
   }
 
   private ensureMember(c: Conversation, userId: string): void {

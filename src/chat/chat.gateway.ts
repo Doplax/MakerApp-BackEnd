@@ -1,46 +1,90 @@
 /**
- * Esqueleto del gateway de WebSockets para chat.
+ * Gateway de WebSockets del chat (Socket.IO, namespace `/chat`).
  *
- * Actualmente NO está registrado en `ChatModule` porque la infra de despliegue
- * (Vercel serverless) no admite conexiones persistentes. Cuando se mueva a un
- * runtime que sí lo soporte (Fly, Render, contenedor propio, etc.):
+ * El handshake se autentica con el mismo JWT del REST: el cliente lo envía en
+ * `auth.token`. Cada usuario se une a una sala `user:<id>`, así emitir a un
+ * usuario es emitir a su sala (soporta varias pestañas/dispositivos).
  *
- * 1. Instalar deps:
- *      npm i @nestjs/websockets @nestjs/platform-socket.io socket.io
- *
- * 2. Añadir `ChatGateway` a `providers` en `chat.module.ts`.
- *
- * 3. En `chat.service.ts`, tras `sendMessage` y `markAsRead`, emitir eventos
- *    al gateway (inyectarlo o emitir un evento interno).
- *
- * 4. En el frontend, sustituir el polling por suscripción a `socket.io-client`
- *    en `ChatService` (manteniendo el resto de la API igual).
- *
- * Eventos previstos:
- *  - `chat:message`    payload: Message          → al receptor
- *  - `chat:read`       payload: { conversationId, userId } → al otro participante
- *  - `chat:typing`     payload: { conversationId, userId } → al otro participante
+ * Eventos:
+ *  - `chat:message`  → al/los destinatario(s)         { conversationId, message }
+ *  - `chat:read`     → al otro participante            { conversationId, readerId }
+ *  - `chat:typing`   ← del cliente, se reenvía al otro { conversationId, userId }
  */
-
+import {
+  WebSocketGateway,
+  WebSocketServer,
+  OnGatewayConnection,
+  SubscribeMessage,
+  MessageBody,
+  ConnectedSocket,
+} from '@nestjs/websockets';
 import { Logger } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
+import { Server, Socket } from 'socket.io';
 
-// Cuando se active, esto pasa a:
-//
-// import { WebSocketGateway, WebSocketServer, OnGatewayConnection,
-//   OnGatewayDisconnect } from '@nestjs/websockets';
-// import { Server, Socket } from 'socket.io';
-//
-// @WebSocketGateway({ namespace: '/chat', cors: { origin: '*' } })
-// export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect { ... }
+interface JwtPayload {
+  sub: string;
+}
 
-export class ChatGateway {
+@WebSocketGateway({
+  namespace: '/chat',
+  cors: { origin: process.env.CORS_ORIGIN || '*' },
+})
+export class ChatGateway implements OnGatewayConnection {
+  @WebSocketServer() server!: Server;
   private readonly logger = new Logger(ChatGateway.name);
 
-  emitMessage(_recipientUserId: string, _payload: unknown): void {
-    // no-op hasta que se active el gateway real
+  constructor(private readonly jwt: JwtService) {}
+
+  handleConnection(client: Socket): void {
+    const token = this.extractToken(client);
+    if (!token) {
+      client.disconnect(true);
+      return;
+    }
+    try {
+      const payload = this.jwt.verify<JwtPayload>(token);
+      (client.data as { userId?: string }).userId = payload.sub;
+      client.join(this.room(payload.sub));
+    } catch {
+      client.disconnect(true);
+    }
   }
 
-  emitRead(_recipientUserId: string, _payload: unknown): void {
-    // no-op
+  /** Mensaje nuevo → sala del destinatario. */
+  emitMessage(recipientUserId: string, payload: unknown): void {
+    this.server.to(this.room(recipientUserId)).emit('chat:message', payload);
+  }
+
+  /** Lectura → sala del otro participante (para recibos de lectura). */
+  emitRead(recipientUserId: string, payload: unknown): void {
+    this.server.to(this.room(recipientUserId)).emit('chat:read', payload);
+  }
+
+  /** "Escribiendo…" — el cliente indica a qué usuario avisar; lo reenviamos. */
+  @SubscribeMessage('chat:typing')
+  onTyping(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { conversationId: string; toUserId: string },
+  ): void {
+    const userId = (client.data as { userId?: string }).userId;
+    if (!userId || !data?.toUserId) return;
+    this.server.to(this.room(data.toUserId)).emit('chat:typing', {
+      conversationId: data.conversationId,
+      userId,
+    });
+  }
+
+  private room(userId: string): string {
+    return `user:${userId}`;
+  }
+
+  private extractToken(client: Socket): string {
+    const auth = client.handshake.auth as { token?: string } | undefined;
+    if (auth?.token) return auth.token;
+    const header = client.handshake.headers.authorization;
+    if (header?.startsWith('Bearer ')) return header.slice(7);
+    const q = client.handshake.query?.token;
+    return typeof q === 'string' ? q : '';
   }
 }
