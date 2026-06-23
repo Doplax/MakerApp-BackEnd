@@ -27,6 +27,18 @@ export interface ConversationSummary {
   updatedAt: Date;
 }
 
+/** Vista pública de un mensaje (sin exponer el User completo del emisor). */
+export interface MessageView {
+  id: string;
+  body: string;
+  createdAt: Date;
+  sender: {
+    id: string;
+    fullName: string;
+    avatarUrl: string | null;
+  };
+}
+
 @Injectable()
 export class ChatService {
   constructor(
@@ -39,6 +51,20 @@ export class ChatService {
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
   ) {}
+
+  /** Proyecta un Message a su vista pública (solo datos básicos del emisor). */
+  private toMessageView(m: Message): MessageView {
+    return {
+      id: m.id,
+      body: m.body,
+      createdAt: m.createdAt,
+      sender: {
+        id: m.sender.id,
+        fullName: m.sender.fullName,
+        avatarUrl: m.sender.avatarUrl ?? null,
+      },
+    };
+  }
 
   /**
    * Devuelve la conversación 1:1 existente entre los dos usuarios, o la crea
@@ -198,7 +224,7 @@ export class ChatService {
     currentUser: User,
     conversationId: string,
     opts: { limit?: number; before?: string } = {},
-  ): Promise<Message[]> {
+  ): Promise<MessageView[]> {
     const c = await this.conversationRepo.findOne({
       where: { id: conversationId },
       relations: ['participants', 'participants.user'],
@@ -220,14 +246,14 @@ export class ChatService {
       order: { createdAt: 'DESC' },
       take: limit,
     });
-    return items.reverse();
+    return items.reverse().map((m) => this.toMessageView(m));
   }
 
   async sendMessage(
     currentUser: User,
     conversationId: string,
     body: string,
-  ): Promise<Message> {
+  ): Promise<MessageView> {
     const c = await this.conversationRepo.findOne({
       where: { id: conversationId },
       relations: ['participants', 'participants.user'],
@@ -245,7 +271,7 @@ export class ChatService {
     c.lastMessageAt = saved.createdAt;
     await this.conversationRepo.save(c);
 
-    return saved;
+    return this.toMessageView(saved);
   }
 
   async markAsRead(currentUser: User, conversationId: string): Promise<void> {
