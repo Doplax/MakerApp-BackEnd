@@ -26,6 +26,8 @@ export interface ConversationSummary {
   } | null;
   unreadCount: number;
   updatedAt: Date;
+  /** Hasta cuándo ha leído el OTRO participante (para los recibos ✓✓). */
+  otherLastReadAt: Date | null;
 }
 
 /** Vista pública de un mensaje (sin exponer el User completo del emisor). */
@@ -141,9 +143,10 @@ export class ChatService {
 
     const summaries: ConversationSummary[] = [];
     for (const c of conversations) {
-      const other = c.participants.find(
+      const otherParticipant = c.participants.find(
         (p) => p.user.id !== currentUser.id,
-      )?.user;
+      );
+      const other = otherParticipant?.user;
       if (!other) continue;
 
       const lastMessage = await this.messageRepo.findOne({
@@ -177,6 +180,7 @@ export class ChatService {
           : null,
         unreadCount,
         updatedAt: c.lastMessageAt ?? c.updatedAt,
+        otherLastReadAt: otherParticipant?.lastReadAt ?? null,
       });
     }
 
@@ -194,8 +198,10 @@ export class ChatService {
     if (!c) throw new NotFoundException('Conversación no encontrada');
     this.ensureMember(c, currentUser.id);
 
-    const other = c.participants.find((p) => p.user.id !== currentUser.id)
-      ?.user;
+    const otherParticipant = c.participants.find(
+      (p) => p.user.id !== currentUser.id,
+    );
+    const other = otherParticipant?.user;
     if (!other) throw new NotFoundException('Conversación inválida');
 
     const lastMessage = await this.messageRepo.findOne({
@@ -219,6 +225,7 @@ export class ChatService {
         : null,
       unreadCount: 0,
       updatedAt: c.lastMessageAt ?? c.updatedAt,
+      otherLastReadAt: otherParticipant?.lastReadAt ?? null,
     };
   }
 
