@@ -2,6 +2,9 @@ import { Controller, Get, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { StatisticsService } from './statistics.service.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
+import { Roles } from '../common/decorators/roles.decorator.js';
+import { RolesGuard } from '../common/guards/roles.guard.js';
+import { UserRole } from '../common/enums/index.js';
 import { User } from '../users/entities/user.entity.js';
 
 @Controller('statistics')
@@ -17,5 +20,12 @@ export class StatisticsController {
   @Get('monthly-activity')
   getMonthlyActivity(@CurrentUser() user: User) {
     return this.statisticsService.getMonthlyActivity(user);
+  }
+
+  @Get('admin-overview')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN)
+  getAdminOverview() {
+    return this.statisticsService.getAdminOverview();
   }
 }

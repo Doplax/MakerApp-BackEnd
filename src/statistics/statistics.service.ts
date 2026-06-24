@@ -1,12 +1,29 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { MoreThanOrEqual, Repository } from 'typeorm';
+import { MoreThanOrEqual, Not, IsNull, Repository } from 'typeorm';
 import { Filament } from '../filaments/entities/filament.entity.js';
 import { PrintLog } from '../print-logs/entities/print-log.entity.js';
 import { Printer } from '../printers/entities/printer.entity.js';
 import { Project } from '../projects/entities/project.entity.js';
 import { User } from '../users/entities/user.entity.js';
+import { FilamentCatalog } from '../filament-catalog/entities/filament-catalog.entity.js';
 import { FilamentStatus, PrintStatus } from '../common/enums/index.js';
+
+export interface AdminOverview {
+  users: {
+    total: number;
+    active: number;
+    inactive: number;
+    byRole: Record<string, number>;
+    newLast30Days: number;
+    onMap: number;
+  };
+  catalog: {
+    total: number;
+    active: number;
+    inactive: number;
+  };
+}
 
 @Injectable()
 export class StatisticsService {
@@ -19,7 +36,68 @@ export class StatisticsService {
     private readonly printerRepository: Repository<Printer>,
     @InjectRepository(Project)
     private readonly projectRepository: Repository<Project>,
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
+    @InjectRepository(FilamentCatalog)
+    private readonly catalogRepository: Repository<FilamentCatalog>,
   ) {}
+
+  /**
+   * Métricas agregadas de toda la plataforma para el panel de administración.
+   * Solo lecturas (COUNT / GROUP BY); no modifica datos.
+   */
+  async getAdminOverview(): Promise<AdminOverview> {
+    const since = new Date();
+    since.setDate(since.getDate() - 30);
+
+    const [
+      totalUsers,
+      activeUsers,
+      newUsers,
+      usersOnMap,
+      roleRows,
+      totalCatalog,
+      activeCatalog,
+    ] = await Promise.all([
+      this.userRepository.count(),
+      this.userRepository.count({ where: { isActive: true } }),
+      this.userRepository.count({
+        where: { createdAt: MoreThanOrEqual(since) },
+      }),
+      this.userRepository.count({
+        where: { latitude: Not(IsNull()), longitude: Not(IsNull()) },
+      }),
+      this.userRepository
+        .createQueryBuilder('u')
+        .select('u.role', 'role')
+        .addSelect('COUNT(*)', 'count')
+        .groupBy('u.role')
+        .getRawMany<{ role: string; count: string }>(),
+      this.catalogRepository.count(),
+      this.catalogRepository.count({ where: { isActive: true } }),
+    ]);
+
+    const byRole: Record<string, number> = {};
+    roleRows.forEach((r) => {
+      byRole[r.role] = parseInt(r.count, 10);
+    });
+
+    return {
+      users: {
+        total: totalUsers,
+        active: activeUsers,
+        inactive: totalUsers - activeUsers,
+        byRole,
+        newLast30Days: newUsers,
+        onMap: usersOnMap,
+      },
+      catalog: {
+        total: totalCatalog,
+        active: activeCatalog,
+        inactive: totalCatalog - activeCatalog,
+      },
+    };
+  }
 
   async getDashboardStats(user: User) {
     const userId = user.id;
