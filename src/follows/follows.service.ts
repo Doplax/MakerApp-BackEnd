@@ -129,6 +129,30 @@ export class FollowsService {
     }));
   }
 
+  async getFollowers(
+    userId: string,
+  ): Promise<
+    {
+      id: string;
+      fullName: string;
+      avatarUrl: string | null;
+      location: string | null;
+    }[]
+  > {
+    const follows = await this.followRepo.find({
+      where: { following: { id: userId } },
+      relations: ['follower'],
+      order: { createdAt: 'DESC' },
+    });
+
+    return follows.map((f) => ({
+      id: f.follower.id,
+      fullName: f.follower.fullName,
+      avatarUrl: f.follower.avatarUrl ?? null,
+      location: f.follower.location ?? null,
+    }));
+  }
+
   async getFollowerCount(userId: string): Promise<number> {
     return this.followRepo.count({
       where: { following: { id: userId } },

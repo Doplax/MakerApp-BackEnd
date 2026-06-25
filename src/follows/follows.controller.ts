@@ -47,6 +47,11 @@ export class FollowsController {
     return this.followsService.getFollowing(user.id);
   }
 
+  @Get('followers/:makerId')
+  async getFollowers(@Param('makerId', ParseUUIDPipe) makerId: string) {
+    return this.followsService.getFollowers(makerId);
+  }
+
   @Get('count/:makerId')
   async getFollowerCount(@Param('makerId', ParseUUIDPipe) makerId: string) {
     const followers = await this.followsService.getFollowerCount(makerId);
