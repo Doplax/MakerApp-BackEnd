@@ -13,6 +13,7 @@ import { StatisticsModule } from './statistics/statistics.module.js';
 import { SeedModule } from './seed/seed.module.js';
 import { PublicModule } from './public/public.module.js';
 import { FollowsModule } from './follows/follows.module.js';
+import { FavoritesModule } from './favorites/favorites.module.js';
 import { FilamentCatalogModule } from './filament-catalog/filament-catalog.module.js';
 import { ReviewsModule } from './reviews/reviews.module.js';
 import { StripeModule } from './stripe/stripe.module.js';
@@ -52,6 +53,7 @@ import { NotificationsModule } from './notifications/notifications.module.js';
     SeedModule,
     PublicModule,
     FollowsModule,
+    FavoritesModule,
     FilamentCatalogModule,
     ReviewsModule,
     StripeModule,
