@@ -28,7 +28,11 @@ interface JwtPayload {
 
 @WebSocketGateway({
   namespace: '/chat',
-  cors: { origin: process.env.CORS_ORIGIN || '*' },
+  cors: {
+    origin: process.env.CORS_ORIGIN
+      ? process.env.CORS_ORIGIN.split(',').map((o) => o.trim())
+      : '*',
+  },
 })
 export class ChatGateway implements OnGatewayConnection {
   @WebSocketServer() server!: Server;

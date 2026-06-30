@@ -48,7 +48,12 @@ import { Message } from '../chat/entities/message.entity.js';
           Message,
         ],
         synchronize: true,
-        ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false,
+        // SSL condicional: activo solo si DB_SSL=true o la URL pide sslmode=require.
+        ssl:
+          process.env.DB_SSL === 'true' ||
+          process.env.DATABASE_URL?.includes('sslmode=require')
+            ? { rejectUnauthorized: false }
+            : false,
       }),
     }),
     SeedModule,

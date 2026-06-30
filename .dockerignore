@@ -1,0 +1,14 @@
+node_modules
+dist
+.env
+.env.*
+*.log
+backup-neon-*.json
+seed-out.txt
+login-test.log
+coverage
+.git
+.gitignore
+test
+Dockerfile
+.dockerignore

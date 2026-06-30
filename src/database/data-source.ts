@@ -13,7 +13,12 @@ export const AppDataSource = new DataSource({
   username: process.env.DB_USERNAME || 'maker_user',
   password: process.env.DB_PASSWORD || 'maker_password',
   database: process.env.DB_NAME || 'maker_db',
-  ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false,
+  // SSL condicional: activo solo si DB_SSL=true o la URL pide sslmode=require.
+  ssl:
+    process.env.DB_SSL === 'true' ||
+    process.env.DATABASE_URL?.includes('sslmode=require')
+      ? { rejectUnauthorized: false }
+      : false,
   entities: [path.resolve(__dirname, '../**/*.entity{.ts,.js}')],
   migrations: [path.resolve(__dirname, './migrations/*{.ts,.js}')],
   synchronize: false,

@@ -12,9 +12,11 @@ async function bootstrap() {
   // Prefijo global para la API
   app.setGlobalPrefix('api');
 
-  // CORS
+  // CORS — admite varios orígenes separados por coma (ej. dominio final + subdominio temporal)
   app.enableCors({
-    origin: process.env.CORS_ORIGIN || '*',
+    origin: process.env.CORS_ORIGIN
+      ? process.env.CORS_ORIGIN.split(',').map((o) => o.trim())
+      : '*',
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
   });

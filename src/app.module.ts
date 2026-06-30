@@ -39,8 +39,16 @@ import { NotificationsModule } from './notifications/notifications.module.js';
         password: process.env.DB_PASSWORD || 'maker_password',
         database: process.env.DB_NAME || 'maker_db',
         autoLoadEntities: true,
-        synchronize: true, // Solo para desarrollo, desactivar en producción
-        ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false,
+        // synchronize gateado por entorno: activo salvo DB_SYNCHRONIZE=false.
+        // En producción poner DB_SYNCHRONIZE=false y usar migraciones.
+        synchronize: process.env.DB_SYNCHRONIZE !== 'false',
+        // SSL condicional: activo solo si DB_SSL=true o la URL pide sslmode=require.
+        // BD interna de EasyPanel = sin SSL; Neon (dev) = DB_SSL=true.
+        ssl:
+          process.env.DB_SSL === 'true' ||
+          process.env.DATABASE_URL?.includes('sslmode=require')
+            ? { rejectUnauthorized: false }
+            : false,
       }),
     }),
     UsersModule,
