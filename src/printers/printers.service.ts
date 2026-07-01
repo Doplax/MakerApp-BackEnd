@@ -5,6 +5,7 @@ import { CreatePrinterDto } from './dto/create-printer.dto.js';
 import { UpdatePrinterDto } from './dto/update-printer.dto.js';
 import { Printer } from './entities/printer.entity.js';
 import { User } from '../users/entities/user.entity.js';
+import { CloudinaryService } from '../cloudinary/cloudinary.service.js';
 
 export interface MaintenanceDueItem {
   printerId: string;
@@ -28,6 +29,7 @@ export class PrintersService {
   constructor(
     @InjectRepository(Printer)
     private readonly printerRepository: Repository<Printer>,
+    private readonly cloudinary: CloudinaryService,
   ) {}
 
   async create(
@@ -144,13 +146,20 @@ export class PrintersService {
     user: User,
   ): Promise<Printer> {
     const printer = await this.findOne(id, user);
+    const oldImageUrl = printer.imageUrl;
     Object.assign(printer, updatePrinterDto);
-    return this.printerRepository.save(printer);
+    const saved = await this.printerRepository.save(printer);
+    if (oldImageUrl && oldImageUrl !== saved.imageUrl) {
+      await this.cloudinary.deleteByUrl(oldImageUrl);
+    }
+    return saved;
   }
 
   async remove(id: string, user: User): Promise<{ message: string }> {
     const printer = await this.findOne(id, user);
+    const imageUrl = printer.imageUrl;
     await this.printerRepository.remove(printer);
+    if (imageUrl) await this.cloudinary.deleteByUrl(imageUrl);
     return { message: `Printer ${printer.name} has been removed` };
   }
 

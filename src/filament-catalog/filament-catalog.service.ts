@@ -5,6 +5,7 @@ import { FilamentCatalog } from './entities/filament-catalog.entity.js';
 import { CreateFilamentCatalogDto } from './dto/create-filament-catalog.dto.js';
 import { UpdateFilamentCatalogDto } from './dto/update-filament-catalog.dto.js';
 import { FilterFilamentCatalogDto } from './dto/filter-filament-catalog.dto.js';
+import { CloudinaryService } from '../cloudinary/cloudinary.service.js';
 
 @Injectable()
 export class FilamentCatalogService {
@@ -13,6 +14,7 @@ export class FilamentCatalogService {
   constructor(
     @InjectRepository(FilamentCatalog)
     private readonly catalogRepository: Repository<FilamentCatalog>,
+    private readonly cloudinary: CloudinaryService,
   ) {}
 
   async create(dto: CreateFilamentCatalogDto): Promise<FilamentCatalog> {
@@ -130,8 +132,13 @@ export class FilamentCatalogService {
     dto: UpdateFilamentCatalogDto,
   ): Promise<FilamentCatalog> {
     const catalog = await this.findOne(id);
+    const oldImageUrl = catalog.imageUrl;
     Object.assign(catalog, dto);
-    return this.catalogRepository.save(catalog);
+    const saved = await this.catalogRepository.save(catalog);
+    if (oldImageUrl && oldImageUrl !== saved.imageUrl) {
+      await this.cloudinary.deleteByUrl(oldImageUrl);
+    }
+    return saved;
   }
 
   async bulkUpsert(
@@ -166,7 +173,9 @@ export class FilamentCatalogService {
 
   async remove(id: string): Promise<{ message: string }> {
     const catalog = await this.findOne(id);
+    const imageUrl = catalog.imageUrl;
     await this.catalogRepository.remove(catalog);
+    if (imageUrl) await this.cloudinary.deleteByUrl(imageUrl);
     return {
       message: `Catalog entry ${catalog.brand} ${catalog.color} has been removed`,
     };

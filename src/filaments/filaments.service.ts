@@ -13,6 +13,7 @@ import { Filament } from './entities/filament.entity.js';
 import { FilamentCatalog } from '../filament-catalog/entities/filament-catalog.entity.js';
 import { User } from '../users/entities/user.entity.js';
 import { FilamentStatus } from '../common/enums/index.js';
+import { CloudinaryService } from '../cloudinary/cloudinary.service.js';
 
 @Injectable()
 export class FilamentsService {
@@ -23,6 +24,7 @@ export class FilamentsService {
     private readonly filamentRepository: Repository<Filament>,
     @InjectRepository(FilamentCatalog)
     private readonly catalogRepository: Repository<FilamentCatalog>,
+    private readonly cloudinary: CloudinaryService,
   ) {}
 
   async create(
@@ -164,6 +166,7 @@ export class FilamentsService {
     user: User,
   ): Promise<Filament> {
     const filament = await this.findOne(id, user);
+    const oldImageUrl = filament.imageUrl;
     Object.assign(filament, updateFilamentDto);
 
     // Auto-update status based on remaining weight
@@ -171,12 +174,18 @@ export class FilamentsService {
       filament.status = this.calculateStatus(filament);
     }
 
-    return this.filamentRepository.save(filament);
+    const saved = await this.filamentRepository.save(filament);
+    if (oldImageUrl && oldImageUrl !== saved.imageUrl) {
+      await this.cloudinary.deleteByUrl(oldImageUrl);
+    }
+    return saved;
   }
 
   async remove(id: string, user: User): Promise<{ message: string }> {
     const filament = await this.findOne(id, user);
+    const imageUrl = filament.imageUrl;
     await this.filamentRepository.remove(filament);
+    if (imageUrl) await this.cloudinary.deleteByUrl(imageUrl);
     return {
       message: `Filament ${filament.brand} ${filament.color} has been removed`,
     };

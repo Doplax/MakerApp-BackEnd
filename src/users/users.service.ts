@@ -128,18 +128,27 @@ export class UsersService {
 
   async update(id: string, updateUserDto: UpdateUserDto): Promise<User> {
     const user = await this.findOne(id);
+    const oldAvatarUrl = user.avatarUrl;
 
     if (updateUserDto.email) {
       updateUserDto.email = updateUserDto.email.toLowerCase();
     }
 
     Object.assign(user, updateUserDto);
-    return this.userRepository.save(user);
+    const saved = await this.userRepository.save(user);
+    if (oldAvatarUrl && oldAvatarUrl !== saved.avatarUrl) {
+      await this.cloudinary.deleteByUrl(oldAvatarUrl);
+    }
+    return saved;
   }
 
   async remove(id: string): Promise<{ message: string }> {
     const user = await this.findOne(id);
+    const { avatarUrl, invoiceLogoUrl } = user;
     await this.userRepository.remove(user);
+    // Borramos del almacenamiento el avatar y el logo del usuario eliminado
+    if (avatarUrl) await this.cloudinary.deleteByUrl(avatarUrl);
+    if (invoiceLogoUrl) await this.cloudinary.deleteByUrl(invoiceLogoUrl);
     return { message: `User ${user.email} has been removed` };
   }
 

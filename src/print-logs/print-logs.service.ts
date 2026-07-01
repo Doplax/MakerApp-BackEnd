@@ -16,6 +16,7 @@ import { FilamentsService } from '../filaments/filaments.service.js';
 import { Printer } from '../printers/entities/printer.entity.js';
 import { Project } from '../projects/entities/project.entity.js';
 import { User } from '../users/entities/user.entity.js';
+import { CloudinaryService } from '../cloudinary/cloudinary.service.js';
 
 export interface PaginatedPrintLogs {
   data: PrintLog[];
@@ -32,6 +33,7 @@ export class PrintLogsService {
     @InjectRepository(PrintLog)
     private readonly printLogRepository: Repository<PrintLog>,
     private readonly filamentsService: FilamentsService,
+    private readonly cloudinary: CloudinaryService,
   ) {}
 
   async create(
@@ -154,6 +156,7 @@ export class PrintLogsService {
     user: User,
   ): Promise<PrintLog> {
     const printLog = await this.findOne(id, user);
+    const oldImageUrl = printLog.imageUrl;
     const { filamentId, printerId, projectId, ...logData } = updatePrintLogDto;
 
     // Si cambió el peso, ajustar el filamento
@@ -185,11 +188,16 @@ export class PrintLogsService {
       printLog.printStartedAt = new Date();
     }
 
-    return this.printLogRepository.save(printLog);
+    const saved = await this.printLogRepository.save(printLog);
+    if (oldImageUrl && oldImageUrl !== saved.imageUrl) {
+      await this.cloudinary.deleteByUrl(oldImageUrl);
+    }
+    return saved;
   }
 
   async remove(id: string, user: User): Promise<{ message: string }> {
     const printLog = await this.findOne(id, user);
+    const imageUrl = printLog.imageUrl;
 
     // Restaurar el peso al filamento
     if (printLog.filament) {
@@ -200,6 +208,7 @@ export class PrintLogsService {
     }
 
     await this.printLogRepository.remove(printLog);
+    if (imageUrl) await this.cloudinary.deleteByUrl(imageUrl);
     this.logger.log(
       `Print log removed: ${printLog.name} - ${printLog.weightUsed}g restored to filament`,
     );
