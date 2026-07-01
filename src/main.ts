@@ -1,13 +1,22 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, Logger } from '@nestjs/common';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { resolve } from 'path';
 import { AppModule } from './app.module.js';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter.js';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor.js';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, { rawBody: true });
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    rawBody: true,
+  });
   const logger = new Logger('Bootstrap');
+
+  // Imágenes subidas (volumen persistente): se sirven como estáticos en /uploads,
+  // fuera del prefijo /api. UPLOAD_DIR apunta al punto de montaje del volumen.
+  const uploadDir = process.env.UPLOAD_DIR || resolve(process.cwd(), 'uploads');
+  app.useStaticAssets(uploadDir, { prefix: '/uploads' });
 
   // Prefijo global para la API
   app.setGlobalPrefix('api');
