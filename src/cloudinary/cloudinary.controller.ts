@@ -1,6 +1,7 @@
 import {
   Controller,
   Post,
+  Delete,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -70,5 +71,13 @@ export class CloudinaryController {
       height: result.height,
       bytes: result.bytes,
     };
+  }
+
+  /** Borra una imagen del almacenamiento local a partir de su URL. */
+  @Delete('image')
+  async deleteImage(@Query('url') url: string) {
+    if (!url) throw new BadRequestException('Falta el parámetro url');
+    await this.cloudinary.deleteByUrl(url);
+    return { message: 'Imagen eliminada' };
   }
 }

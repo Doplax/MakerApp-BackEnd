@@ -18,6 +18,7 @@ import { Filament } from '../filaments/entities/filament.entity.js';
 import { PrintLog } from '../print-logs/entities/print-log.entity.js';
 import { PrintStatus } from '../common/enums/index.js';
 import { MakerReviewsService } from '../maker-reviews/maker-reviews.service.js';
+import { CloudinaryService } from '../cloudinary/cloudinary.service.js';
 
 @Injectable()
 export class UsersService {
@@ -32,6 +33,7 @@ export class UsersService {
     private readonly printLogRepository: Repository<PrintLog>,
     @Inject(forwardRef(() => MakerReviewsService))
     private readonly makerReviewsService: MakerReviewsService,
+    private readonly cloudinary: CloudinaryService,
   ) {}
 
   async create(createUserDto: CreateUserDto): Promise<User> {
@@ -143,6 +145,8 @@ export class UsersService {
 
   async updateProfile(id: string, dto: UpdateProfileDto): Promise<User> {
     const user = await this.findOne(id);
+    const oldAvatarUrl = user.avatarUrl;
+    const oldInvoiceLogoUrl = user.invoiceLogoUrl;
 
     // Si se está fijando un proyecto destacado, validar que pertenezca al usuario
     // y sea público (si es null/undefined se permite limpiar el destacado).
@@ -171,6 +175,15 @@ export class UsersService {
     Object.assign(user, dto);
     const saved = await this.userRepository.save(user);
     delete (saved as Partial<User>).password;
+
+    // Borrar del almacenamiento el avatar/logo antiguo si fueron reemplazados
+    if (oldAvatarUrl && oldAvatarUrl !== saved.avatarUrl) {
+      await this.cloudinary.deleteByUrl(oldAvatarUrl);
+    }
+    if (oldInvoiceLogoUrl && oldInvoiceLogoUrl !== saved.invoiceLogoUrl) {
+      await this.cloudinary.deleteByUrl(oldInvoiceLogoUrl);
+    }
+
     return saved;
   }
 

@@ -9,6 +9,7 @@ import { Filament } from '../filaments/entities/filament.entity.js';
 import { Printer } from '../printers/entities/printer.entity.js';
 import { PrintLog } from '../print-logs/entities/print-log.entity.js';
 import { PrintStatus } from '../common/enums/index.js';
+import { CloudinaryService } from '../cloudinary/cloudinary.service.js';
 
 @Injectable()
 export class ProjectsService {
@@ -23,6 +24,7 @@ export class ProjectsService {
     private readonly printerRepository: Repository<Printer>,
     @InjectRepository(PrintLog)
     private readonly printLogRepository: Repository<PrintLog>,
+    private readonly cloudinary: CloudinaryService,
   ) {}
 
   async create(
@@ -90,6 +92,7 @@ export class ProjectsService {
     user: User,
   ): Promise<Project> {
     const project = await this.findOne(id, user);
+    const oldImageUrl = project.imageUrl;
 
     // Extraemos las relaciones para tratarlas por separado
     const { filamentIds, printerId, ...projectData } = updateProjectDto;
@@ -119,13 +122,21 @@ export class ProjectsService {
     // 4. Guardamos la plantilla del proyecto
     await this.projectRepository.save(project);
 
+    // 4b. Si se reemplazó la imagen, borramos el fichero antiguo del almacenamiento
+    if (oldImageUrl && oldImageUrl !== project.imageUrl) {
+      await this.cloudinary.deleteByUrl(oldImageUrl);
+    }
+
     // 5. Devolvemos el proyecto actualizado (con sus relaciones cargadas)
     return this.findOne(project.id, user);
   }
 
   async remove(id: string, user: User): Promise<{ message: string }> {
     const project = await this.findOne(id, user);
+    const imageUrl = project.imageUrl;
     await this.projectRepository.remove(project);
+    // Borramos la imagen asociada del almacenamiento (si la había)
+    if (imageUrl) await this.cloudinary.deleteByUrl(imageUrl);
     return { message: `Project ${project.name} has been removed` };
   }
 }

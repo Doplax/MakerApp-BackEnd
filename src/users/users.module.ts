@@ -6,9 +6,10 @@ import { User } from './entities/user.entity.js';
 import { Filament } from '../filaments/entities/filament.entity.js';
 import { PrintLog } from '../print-logs/entities/print-log.entity.js';
 import { MakerReviewsModule } from '../maker-reviews/maker-reviews.module.js';
+import { CloudinaryModule } from '../cloudinary/cloudinary.module.js';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([User, Filament, PrintLog]), forwardRef(() => MakerReviewsModule)],
+  imports: [TypeOrmModule.forFeature([User, Filament, PrintLog]), forwardRef(() => MakerReviewsModule), CloudinaryModule],
   controllers: [UsersController],
   providers: [UsersService],
   exports: [UsersService],
