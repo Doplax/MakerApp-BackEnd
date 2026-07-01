@@ -1,4 +1,4 @@
-import { IsOptional, IsPositive, Min, IsInt } from 'class-validator';
+import { IsOptional, IsPositive, Min, Max, IsInt } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class PaginationDto {
@@ -13,6 +13,7 @@ export class PaginationDto {
   @IsInt()
   @IsPositive()
   @Min(1)
+  @Max(100) // tope máximo: evita volcados de tablas completas (DoS)
   @Type(() => Number)
   limit?: number = 20;
 }

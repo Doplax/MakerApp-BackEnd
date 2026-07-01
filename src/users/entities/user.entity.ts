@@ -10,6 +10,7 @@ import {
   AfterLoad,
 } from 'typeorm';
 import * as bcrypt from 'bcrypt';
+import { Exclude } from 'class-transformer';
 import { UserRole } from '../../common/enums/index.js';
 import { Filament } from '../../filaments/entities/filament.entity.js';
 import { Printer } from '../../printers/entities/printer.entity.js';
@@ -26,12 +27,15 @@ export class User {
   @Column({ unique: true, length: 150 })
   email!: string;
 
+  @Exclude()
   @Column({ select: false, nullable: true })
   password!: string;
 
+  @Exclude()
   @Column({ select: false, nullable: true, type: 'varchar', length: 64 })
   passwordResetToken!: string | null;
 
+  @Exclude()
   @Column({ select: false, nullable: true, type: 'timestamp' })
   passwordResetExpiresAt!: Date | null;
 

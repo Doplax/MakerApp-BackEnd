@@ -35,11 +35,15 @@ export class UsersController {
   }
 
   @Get(':id')
+  @Roles(UserRole.ADMIN)
   findOne(@Param('id', ParseUUIDPipe) id: string) {
     return this.usersService.findOne(id);
   }
 
+  // Endpoint ADMINISTRATIVO. La edición del perfil propio va por PATCH /auth/profile
+  // (UpdateProfileDto), que NO permite cambiar role/isActive/password.
   @Patch(':id')
+  @Roles(UserRole.ADMIN)
   update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateUserDto: UpdateUserDto,

@@ -35,8 +35,16 @@ const googleStrategyProvider: Provider = {
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
-        secret:
-          configService.get<string>('JWT_SECRET') || 'MakerUp-super-secret-key',
+        // Sin fallback: si falta JWT_SECRET, abortar el arranque (nunca firmar con
+        // un secreto público que permitiría forjar tokens admin).
+        secret: (() => {
+          const s = configService.get<string>('JWT_SECRET');
+          if (!s)
+            throw new Error(
+              'JWT_SECRET no está definido — abortando arranque por seguridad',
+            );
+          return s;
+        })(),
         signOptions: {
           expiresIn: (configService.get<string>('JWT_EXPIRATION') ||
             '24h') as StringValue,

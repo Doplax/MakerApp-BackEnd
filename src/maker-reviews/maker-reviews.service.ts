@@ -93,12 +93,27 @@ export class MakerReviewsService {
     return saved;
   }
 
-  async findByMaker(makerId: string): Promise<MakerReview[]> {
-    return this.reviewRepo.find({
+  async findByMaker(makerId: string) {
+    const reviews = await this.reviewRepo.find({
       where: { maker: { id: makerId } },
       relations: ['author'],
       order: { createdAt: 'DESC' },
     });
+    // Endpoint PÚBLICO: exponer solo campos públicos del autor (sin PII ni datos
+    // fiscales). Nunca devolver la entidad User completa.
+    return reviews.map((r) => ({
+      id: r.id,
+      rating: r.rating,
+      comment: r.comment,
+      createdAt: r.createdAt,
+      author: r.author
+        ? {
+            id: r.author.id,
+            fullName: r.author.fullName,
+            avatarUrl: r.author.avatarUrl,
+          }
+        : null,
+    }));
   }
 
   async getMakerRatingSummary(makerId: string): Promise<MakerRatingSummary> {

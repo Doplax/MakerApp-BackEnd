@@ -15,12 +15,17 @@ import { AuthGuard } from '@nestjs/passport';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { User } from '../users/entities/user.entity.js';
 import { ConfigService } from '@nestjs/config';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Project } from '../projects/entities/project.entity.js';
 
 @Controller('stripe')
 export class StripeController {
   constructor(
     private readonly stripeService: StripeService,
     private readonly config: ConfigService,
+    @InjectRepository(Project)
+    private readonly projectRepo: Repository<Project>,
   ) {}
 
   // ── Onboarding Connect ───────────────────────────────────────
@@ -59,13 +64,35 @@ export class StripeController {
     @Body() dto: CreatePaymentIntentDto,
     @CurrentUser() buyer: User,
   ) {
-    // En producción buscarías el maker dueño del proyecto
-    // Para el prototipo requiere que el maker pase su accountId en metadata o el sistema lo resuelva
+    // El importe y el destinatario se DERIVAN del servidor (precio del proyecto en
+    // BD y stripeAccountId del maker dueño). NUNCA se confía en dto.amount.
+    const project = await this.projectRepo.findOne({
+      where: { id: dto.projectId },
+      relations: ['createdBy'],
+    });
+    if (
+      !project ||
+      !project.isPublic ||
+      project.price == null ||
+      project.price <= 0
+    ) {
+      throw new BadRequestException('Proyecto no disponible para compra');
+    }
+    const maker = project.createdBy;
+    if (!maker) throw new BadRequestException('Proyecto sin maker asociado');
+    if (maker.id === buyer.id) {
+      throw new BadRequestException('No puedes comprar tu propio proyecto');
+    }
+    if (!maker.stripeAccountId) {
+      throw new BadRequestException('El maker no tiene pagos configurados');
+    }
+
+    const amount = Math.round(project.price * 100); // céntimos, calculado en servidor
     return this.stripeService.createPaymentIntent(
-      dto.amount,
+      amount,
       dto.currency ?? 'eur',
-      '', // stripeAccountId del maker — se completará cuando la feature de pago sea end-to-end
-      { projectId: dto.projectId, buyerId: buyer.id },
+      maker.stripeAccountId,
+      { projectId: project.id, buyerId: buyer.id, makerId: maker.id },
     );
   }
 

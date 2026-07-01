@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
 import { UsersModule } from './users/users.module.js';
@@ -29,6 +31,9 @@ import { NotificationsModule } from './notifications/notifications.module.js';
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+    // Rate limiting global: 120 req/min por IP por defecto (endpoints sensibles
+    // como login/registro/reset llevan límites más estrictos con @Throttle).
+    ThrottlerModule.forRoot([{ ttl: 60000, limit: 120 }]),
     TypeOrmModule.forRootAsync({
       useFactory: () => ({
         type: 'postgres',
@@ -39,9 +44,9 @@ import { NotificationsModule } from './notifications/notifications.module.js';
         password: process.env.DB_PASSWORD || 'maker_password',
         database: process.env.DB_NAME || 'maker_db',
         autoLoadEntities: true,
-        // synchronize gateado por entorno: activo salvo DB_SYNCHRONIZE=false.
-        // En producción poner DB_SYNCHRONIZE=false y usar migraciones.
-        synchronize: process.env.DB_SYNCHRONIZE !== 'false',
+        // synchronize DESACTIVADO por defecto (fail-safe): solo se activa con
+        // DB_SYNCHRONIZE=true (desarrollo). En producción NO se define -> false.
+        synchronize: process.env.DB_SYNCHRONIZE === 'true',
         // SSL condicional: activo solo si DB_SSL=true o la URL pide sslmode=require.
         // BD interna de EasyPanel = sin SSL; Neon (dev) = DB_SSL=true.
         ssl:
@@ -73,6 +78,10 @@ import { NotificationsModule } from './notifications/notifications.module.js';
     NotificationsModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    // Aplica el rate limiting a toda la API
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
+  ],
 })
 export class AppModule {}

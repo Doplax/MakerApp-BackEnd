@@ -11,10 +11,14 @@ export class CreatePaymentIntentDto {
   @IsUUID()
   projectId!: string;
 
-  /** Cantidad en céntimos (ej: 1500 = 15.00 €) */
+  /**
+   * @deprecated El importe se DERIVA del precio del proyecto en el servidor.
+   * Se mantiene opcional solo por compatibilidad con clientes antiguos; se IGNORA.
+   */
   @IsInt()
   @IsPositive()
-  amount!: number;
+  @IsOptional()
+  amount?: number;
 
   /** Código de moneda ISO 4217 (default: eur) */
   @IsString()

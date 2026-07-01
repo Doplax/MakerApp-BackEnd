@@ -29,11 +29,12 @@ export class AuthService {
   ) {}
 
   async validateUser(email: string, password: string): Promise<User | null> {
+    // Mensaje UNIFORME para "email no existe" y "contraseña incorrecta":
+    // evita la enumeración de cuentas.
+    const INVALID_CREDENTIALS = 'Correo electrónico o contraseña incorrectos';
     const user = await this.usersService.findByEmail(email);
     if (!user) {
-      throw new UnauthorizedException(
-        'El correo electrónico no se encuentra registrado',
-      );
+      throw new UnauthorizedException(INVALID_CREDENTIALS);
     }
 
     if (!user.isActive) {
@@ -42,7 +43,7 @@ export class AuthService {
 
     const isPasswordValid = await user.checkPassword(password);
     if (!isPasswordValid) {
-      throw new UnauthorizedException('La contraseña es incorrecta');
+      throw new UnauthorizedException(INVALID_CREDENTIALS);
     }
 
     return user;

@@ -65,3 +65,8 @@ dist-migrations/
 
 # Imágenes subidas en local (no versionar)
 /uploads
+
+# Ficheros con datos/credenciales (no versionar)
+seed-out.txt
+*.log
+backup-neon-*.json

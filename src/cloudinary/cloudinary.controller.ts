@@ -1,7 +1,6 @@
 import {
   Controller,
   Post,
-  Delete,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -73,11 +72,8 @@ export class CloudinaryController {
     };
   }
 
-  /** Borra una imagen del almacenamiento local a partir de su URL. */
-  @Delete('image')
-  async deleteImage(@Query('url') url: string) {
-    if (!url) throw new BadRequestException('Falta el parámetro url');
-    await this.cloudinary.deleteByUrl(url);
-    return { message: 'Imagen eliminada' };
-  }
+  // NOTA: no exponemos un DELETE por URL. El borrado se hace de forma segura y con
+  // control de propiedad desde los servicios de cada entidad (al reemplazar la
+  // imagen o borrar el recurso). Un DELETE por URL sin verificar propiedad sería un
+  // IDOR destructivo (borrar ficheros de otros usuarios).
 }
