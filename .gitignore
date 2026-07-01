@@ -62,3 +62,6 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
 # Compilación de migraciones (typeorm CLI)
 dist-migrations/
+
+# Imágenes subidas en local (no versionar)
+/uploads
