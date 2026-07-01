@@ -1,4 +1,9 @@
-import { Injectable, Logger, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  BadRequestException,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { promises as fs } from 'fs';
 import * as path from 'path';
@@ -69,8 +74,17 @@ export class CloudinaryService {
     const id = publicId ?? `${subfolder}-${Date.now()}`;
     const fileName = `${id}.${ext}`;
     const dir = path.join(this.uploadDir, subfolder);
-    await fs.mkdir(dir, { recursive: true });
-    await fs.writeFile(path.join(dir, fileName), buffer);
+    try {
+      await fs.mkdir(dir, { recursive: true });
+      await fs.writeFile(path.join(dir, fileName), buffer);
+    } catch (err) {
+      // Volumen no montado, permisos (EACCES/EROFS) o disco lleno (ENOSPC)
+      this.logger.error(
+        `No se pudo guardar la imagen en ${dir}: ${(err as Error)?.message}`,
+        err as Error,
+      );
+      throw new InternalServerErrorException('No se pudo guardar la imagen');
+    }
 
     return {
       secure_url: `${this.publicBase}/uploads/${subfolder}/${fileName}`,

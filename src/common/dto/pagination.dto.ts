@@ -13,7 +13,7 @@ export class PaginationDto {
   @IsInt()
   @IsPositive()
   @Min(1)
-  @Max(100) // tope máximo: evita volcados de tablas completas (DoS)
+  @Max(1000) // tope máximo: evita volcados ilimitados pero permite "todo mi inventario"
   @Type(() => Number)
   limit?: number = 20;
 }

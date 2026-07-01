@@ -97,8 +97,9 @@ export class ChatService {
       })
       .innerJoin('c.participants', 'p2', 'p2.userId = :b', { b: otherUserId })
       .where(
-        (qb) =>
-          `(SELECT COUNT(*) FROM conversation_participants cp WHERE cp.conversationId = c.id) = 2`,
+        // Columna camelCase: hay que entrecomillarla o Postgres la busca en minúsculas.
+        () =>
+          `(SELECT COUNT(*) FROM conversation_participants cp WHERE cp."conversationId" = c.id) = 2`,
       )
       .getOne();
 
