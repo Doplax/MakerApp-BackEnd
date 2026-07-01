@@ -123,6 +123,10 @@ export class User {
   @Column({ nullable: true, length: 50 })
   mapStyle!: string;
 
+  // ── Moneda preferida (ISO 4217) ────────────────────────────
+  @Column({ type: 'varchar', length: 3, default: 'EUR' })
+  currency!: string;
+
   // ── Links adicionales (JSON array) ─────────────────────────
   @Column({ type: 'jsonb', nullable: true, default: null })
   customLinks!: { label: string; url: string }[];

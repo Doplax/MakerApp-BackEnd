@@ -1,6 +1,7 @@
 import {
   IsArray,
   IsBoolean,
+  IsIn,
   IsNumber,
   IsOptional,
   IsString,
@@ -186,4 +187,9 @@ export class UpdateProfileDto {
   @IsOptional()
   @MaxLength(50)
   mapStyle?: string;
+
+  // ── Moneda preferida (ISO 4217) ────────────────────────────
+  @IsOptional()
+  @IsIn(['EUR', 'USD', 'GBP', 'CHF', 'CAD', 'AUD', 'JPY', 'MXN'])
+  currency?: string;
 }

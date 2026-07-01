@@ -25,6 +25,7 @@ import { ChatModule } from './chat/chat.module.js';
 import { CloudinaryModule } from './cloudinary/cloudinary.module.js';
 import { MailModule } from './mail/mail.module.js';
 import { NotificationsModule } from './notifications/notifications.module.js';
+import { ExchangeRatesModule } from './exchange-rates/exchange-rates.module.js';
 
 @Module({
   imports: [
@@ -76,6 +77,7 @@ import { NotificationsModule } from './notifications/notifications.module.js';
     CloudinaryModule,
     MailModule,
     NotificationsModule,
+    ExchangeRatesModule,
   ],
   controllers: [AppController],
   providers: [
