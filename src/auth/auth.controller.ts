@@ -20,6 +20,11 @@ import { UpdateProfileDto } from '../users/dto/update-profile.dto.js';
 import { ChangePasswordDto } from '../users/dto/change-password.dto.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { User } from '../users/entities/user.entity.js';
+import {
+  ACCESS_TOKEN_COOKIE,
+  accessTokenCookieOptions,
+  clearAccessTokenCookieOptions,
+} from './auth-cookie.js';
 
 @Controller('auth')
 export class AuthController {
@@ -31,14 +36,31 @@ export class AuthController {
   @Post('login')
   @Throttle({ default: { limit: 10, ttl: 60000 } }) // anti fuerza bruta
   @UseGuards(AuthGuard('local'))
-  login(@Request() req: { user: User }) {
-    return this.authService.login(req.user);
+  login(
+    @Request() req: { user: User },
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = this.authService.login(req.user);
+    // El JWT va en una cookie httpOnly; el body devuelve solo el user (sin token).
+    res.cookie(ACCESS_TOKEN_COOKIE, result.accessToken, accessTokenCookieOptions());
+    return { user: result.user };
   }
 
   @Post('register')
   @Throttle({ default: { limit: 5, ttl: 60000 } })
-  register(@Body() registerDto: RegisterDto) {
-    return this.authService.register(registerDto);
+  async register(
+    @Body() registerDto: RegisterDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.authService.register(registerDto);
+    res.cookie(ACCESS_TOKEN_COOKIE, result.accessToken, accessTokenCookieOptions());
+    return { user: result.user };
+  }
+
+  @Post('logout')
+  logout(@Res({ passthrough: true }) res: Response) {
+    res.clearCookie(ACCESS_TOKEN_COOKIE, clearAccessTokenCookieOptions());
+    return { message: 'Sesión cerrada' };
   }
 
   @Post('forgot-password')
@@ -91,11 +113,8 @@ export class AuthController {
     const frontendUrl =
       this.configService.get<string>('FRONTEND_URL') || 'http://localhost:4210';
 
-    const params = new URLSearchParams({
-      token: result.accessToken,
-      user: JSON.stringify(result.user),
-    });
-
-    res.redirect(`${frontendUrl}/auth/google-callback?${params.toString()}`);
+    // Sesión por cookie httpOnly (NO exponer el token en la URL de redirect).
+    res.cookie(ACCESS_TOKEN_COOKIE, result.accessToken, accessTokenCookieOptions());
+    res.redirect(`${frontendUrl}/auth/google-callback`);
   }
 }

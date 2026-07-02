@@ -7,6 +7,7 @@ import {
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
+import cookieParser from 'cookie-parser';
 import { resolve } from 'path';
 import { AppModule } from './app.module.js';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter.js';
@@ -32,10 +33,25 @@ async function bootstrap() {
     }),
   );
 
+  // Parseo de cookies: la sesión (JWT) viaja en una cookie httpOnly (ver auth).
+  app.use(cookieParser());
+
   // Imágenes subidas (volumen persistente): se sirven como estáticos en /uploads,
   // fuera del prefijo /api. UPLOAD_DIR apunta al punto de montaje del volumen.
   const uploadDir = process.env.UPLOAD_DIR || resolve(process.cwd(), 'uploads');
-  app.useStaticAssets(uploadDir, { prefix: '/uploads' });
+  app.useStaticAssets(uploadDir, {
+    prefix: '/uploads',
+    setHeaders: (res, filePath) => {
+      // Reafirmar nosniff (defensa en profundidad; helmet ya lo aplica global).
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+      // Los DOCUMENTOS (PDF de licencias, etc.) se fuerzan a descarga en vez de
+      // renderizarse inline: un visor de PDF puede ejecutar JS, y así evitamos
+      // XSS almacenado servido desde el propio origen del backend.
+      if (/\.pdf$/i.test(filePath) || /[\\/](documents|licenses)[\\/]/i.test(filePath)) {
+        res.setHeader('Content-Disposition', 'attachment');
+      }
+    },
+  });
 
   // Prefijo global para la API
   app.setGlobalPrefix('api');

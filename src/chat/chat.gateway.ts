@@ -25,6 +25,7 @@ import { Repository } from 'typeorm';
 import { Server, Socket } from 'socket.io';
 import { User } from '../users/entities/user.entity.js';
 import { ConversationParticipant } from './entities/conversation-participant.entity.js';
+import { ACCESS_TOKEN_COOKIE } from '../auth/auth-cookie.js';
 
 interface JwtPayload {
   sub: string;
@@ -41,7 +42,9 @@ interface RateState {
   cors: {
     origin: process.env.CORS_ORIGIN
       ? process.env.CORS_ORIGIN.split(',').map((o) => o.trim())
-      : '*',
+      : ['http://localhost:4210'],
+    // credentials:true para que el navegador envíe la cookie httpOnly en el handshake.
+    credentials: true,
   },
 })
 export class ChatGateway implements OnGatewayConnection {
@@ -142,6 +145,18 @@ export class ChatGateway implements OnGatewayConnection {
   }
 
   private extractToken(client: Socket): string {
+    // 1º: cookie httpOnly (el navegador la envía con withCredentials).
+    const rawCookie = client.handshake.headers.cookie;
+    if (rawCookie) {
+      const match = rawCookie
+        .split(';')
+        .map((c) => c.trim())
+        .find((c) => c.startsWith(`${ACCESS_TOKEN_COOKIE}=`));
+      if (match) {
+        return decodeURIComponent(match.slice(ACCESS_TOKEN_COOKIE.length + 1));
+      }
+    }
+    // Fallbacks: handshake.auth.token, header Bearer, query ?token=
     const auth = client.handshake.auth as { token?: string } | undefined;
     if (auth?.token) return auth.token;
     const header = client.handshake.headers.authorization;
