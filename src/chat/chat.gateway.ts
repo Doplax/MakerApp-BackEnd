@@ -156,12 +156,13 @@ export class ChatGateway implements OnGatewayConnection {
         return decodeURIComponent(match.slice(ACCESS_TOKEN_COOKIE.length + 1));
       }
     }
-    // Fallbacks: handshake.auth.token, header Bearer, query ?token=
+    // Fallbacks: handshake.auth.token, header Bearer.
+    // NO aceptamos el token por query string (?token=): acaba en logs de
+    // servidor/proxy y en el historial, así que es un vector de fuga.
     const auth = client.handshake.auth as { token?: string } | undefined;
     if (auth?.token) return auth.token;
     const header = client.handshake.headers.authorization;
     if (header?.startsWith('Bearer ')) return header.slice(7);
-    const q = client.handshake.query?.token;
-    return typeof q === 'string' ? q : '';
+    return '';
   }
 }

@@ -87,7 +87,12 @@ export class ChatService {
     const otherUser = await this.userRepo.findOne({
       where: { id: otherUserId },
     });
-    if (!otherUser) throw new NotFoundException('Usuario no encontrado');
+    // No revelamos la existencia de usuarios inactivos/baneados: se tratan igual
+    // que si no existieran, coherente con jwt.strategy y el gateway del chat, que
+    // también bloquean a los inactivos.
+    if (!otherUser || !otherUser.isActive) {
+      throw new NotFoundException('Usuario no encontrado');
+    }
 
     // Buscar una conversación que contenga exactamente a estos dos usuarios.
     const existing = await this.conversationRepo
@@ -271,10 +276,18 @@ export class ChatService {
     if (!c) throw new NotFoundException('Conversación no encontrada');
     this.ensureMember(c, currentUser.id);
 
+    // El @MinLength(1) del DTO valida la cadena CRUDA, así que '   ' (solo
+    // espacios) pasa la validación. Rechazamos aquí el contenido vacío tras
+    // recortar para no persistir/notificar un mensaje en blanco.
+    const trimmed = body.trim();
+    if (trimmed.length === 0) {
+      throw new BadRequestException('El mensaje no puede estar vacío');
+    }
+
     const message = this.messageRepo.create({
       conversation: c,
       sender: currentUser,
-      body: body.trim(),
+      body: trimmed,
     });
     const saved = await this.messageRepo.save(message);
 
