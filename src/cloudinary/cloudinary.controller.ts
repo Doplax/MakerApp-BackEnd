@@ -9,12 +9,16 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { CloudinaryService } from './cloudinary.service.js';
-import type { CloudinaryFolder } from './cloudinary.service.js';
+import type {
+  CloudinaryFolder,
+  DocumentFolder,
+} from './cloudinary.service.js';
 import { AuthGuard } from '@nestjs/passport';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { User } from '../users/entities/user.entity.js';
 
 const MAX_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB
+const MAX_DOC_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
 
 @Controller('upload')
 @UseGuards(AuthGuard('jwt'))
@@ -68,6 +72,49 @@ export class CloudinaryController {
       publicId: result.public_id,
       width: result.width,
       height: result.height,
+      bytes: result.bytes,
+    };
+  }
+
+  @Post('document')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: { fileSize: MAX_DOC_SIZE_BYTES },
+      fileFilter: (_req, file, cb) => {
+        if (file.mimetype !== 'application/pdf') {
+          return cb(
+            new BadRequestException('Solo se permiten documentos PDF'),
+            false,
+          );
+        }
+        cb(null, true);
+      },
+    }),
+  )
+  async uploadDocument(
+    @UploadedFile() file: Express.Multer.File,
+    @Query('folder') folder: DocumentFolder = 'documents',
+    @CurrentUser() user: User,
+  ) {
+    if (!file) throw new BadRequestException('No se recibió ningún archivo');
+
+    const validFolders: DocumentFolder[] = ['documents', 'licenses'];
+    if (!validFolders.includes(folder)) {
+      throw new BadRequestException(
+        `Carpeta inválida. Válidas: ${validFolders.join(', ')}`,
+      );
+    }
+
+    const publicId = `${folder}-${user.id}-${Date.now()}`;
+    const result = await this.cloudinary.uploadDocument(
+      file.buffer,
+      folder,
+      publicId,
+    );
+
+    return {
+      url: result.secure_url,
+      publicId: result.public_id,
       bytes: result.bytes,
     };
   }

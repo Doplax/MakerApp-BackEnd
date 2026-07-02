@@ -93,6 +93,7 @@ export class ProjectsService {
   ): Promise<Project> {
     const project = await this.findOne(id, user);
     const oldImageUrl = project.imageUrl;
+    const oldLicenseFileUrl = project.licenseFileUrl;
 
     // Extraemos las relaciones para tratarlas por separado
     const { filamentIds, printerId, ...projectData } = updateProjectDto;
@@ -122,9 +123,13 @@ export class ProjectsService {
     // 4. Guardamos la plantilla del proyecto
     await this.projectRepository.save(project);
 
-    // 4b. Si se reemplazó la imagen, borramos el fichero antiguo del almacenamiento
+    // 4b. Si se reemplazó la imagen o la licencia, borramos el fichero antiguo
+    // del almacenamiento (deleteByUrl ignora URLs que no son de /uploads).
     if (oldImageUrl && oldImageUrl !== project.imageUrl) {
       await this.cloudinary.deleteByUrl(oldImageUrl);
+    }
+    if (oldLicenseFileUrl && oldLicenseFileUrl !== project.licenseFileUrl) {
+      await this.cloudinary.deleteByUrl(oldLicenseFileUrl);
     }
 
     // 5. Devolvemos el proyecto actualizado (con sus relaciones cargadas)
@@ -133,10 +138,11 @@ export class ProjectsService {
 
   async remove(id: string, user: User): Promise<{ message: string }> {
     const project = await this.findOne(id, user);
-    const imageUrl = project.imageUrl;
+    const { imageUrl, licenseFileUrl } = project;
     await this.projectRepository.remove(project);
-    // Borramos la imagen asociada del almacenamiento (si la había)
+    // Borramos del almacenamiento la imagen y la licencia asociadas (si las había)
     if (imageUrl) await this.cloudinary.deleteByUrl(imageUrl);
+    if (licenseFileUrl) await this.cloudinary.deleteByUrl(licenseFileUrl);
     return { message: `Project ${project.name} has been removed` };
   }
 }
