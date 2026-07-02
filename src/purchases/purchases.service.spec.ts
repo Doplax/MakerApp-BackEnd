@@ -57,6 +57,22 @@ describe('PurchasesService', () => {
     expect(notifications.create).not.toHaveBeenCalled();
   });
 
+  it('un payment_intent.succeeded re-entregado NO revierte una compra REFUNDED (terminal)', async () => {
+    purchaseRepo.findOne.mockResolvedValue({
+      id: 'pur1',
+      paymentIntentId: 'pi_1',
+      status: PurchaseStatus.REFUNDED,
+    });
+    const res = await service.recordSucceeded({
+      paymentIntentId: 'pi_1',
+      amount: 1000,
+      currency: 'eur',
+    });
+    expect(res.status).toBe(PurchaseStatus.REFUNDED);
+    expect(purchaseRepo.save).not.toHaveBeenCalled();
+    expect(purchaseRepo.create).not.toHaveBeenCalled();
+  });
+
   it('registra una compra nueva, envía email al comprador y notifica al maker', async () => {
     purchaseRepo.findOne.mockResolvedValue(null);
     projectRepo.findOne.mockResolvedValue({

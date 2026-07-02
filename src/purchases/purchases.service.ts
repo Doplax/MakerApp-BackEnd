@@ -42,8 +42,15 @@ export class PurchasesService {
       where: { paymentIntentId: input.paymentIntentId },
     });
     if (existing) {
-      existing.status = PurchaseStatus.SUCCEEDED;
-      return this.purchaseRepo.save(existing);
+      // REFUNDED es TERMINAL: Stripe puede re-entregar payment_intent.succeeded
+      // (hasta 3 días) sin garantía de orden; un reintento tardío NO debe revertir
+      // una compra reembolsada/disputada a SUCCEEDED.
+      if (existing.status === PurchaseStatus.REFUNDED) return existing;
+      if (existing.status !== PurchaseStatus.SUCCEEDED) {
+        existing.status = PurchaseStatus.SUCCEEDED;
+        return this.purchaseRepo.save(existing);
+      }
+      return existing;
     }
 
     const project = input.projectId
@@ -137,6 +144,37 @@ export class PurchasesService {
       where: { id },
       relations: ['buyer', 'maker', 'project'],
     });
+  }
+
+  /** Ventas completadas de un maker (más recientes primero). */
+  async findSalesForMaker(makerId: string): Promise<Purchase[]> {
+    return this.purchaseRepo.find({
+      where: { maker: { id: makerId }, status: PurchaseStatus.SUCCEEDED },
+      relations: ['buyer', 'project'],
+      order: { createdAt: 'DESC' },
+    });
+  }
+
+  /** Pedidos completados de un comprador (más recientes primero). */
+  async findOrdersForBuyer(buyerId: string): Promise<Purchase[]> {
+    return this.purchaseRepo.find({
+      where: { buyer: { id: buyerId }, status: PurchaseStatus.SUCCEEDED },
+      relations: ['maker', 'project'],
+      order: { createdAt: 'DESC' },
+    });
+  }
+
+  /**
+   * Marca una compra como reembolsada/fallida a partir del paymentIntentId.
+   * Idempotente y no-op si la compra no existe (p. ej. reembolso de un pago
+   * creado fuera de la app). Llamado desde el webhook de Stripe.
+   */
+  async updateStatusByPaymentIntent(
+    paymentIntentId: string,
+    status: PurchaseStatus,
+  ): Promise<void> {
+    if (!paymentIntentId) return;
+    await this.purchaseRepo.update({ paymentIntentId }, { status });
   }
 
   /**
