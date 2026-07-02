@@ -1,4 +1,4 @@
-import { BadRequestException, ForbiddenException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { InvoicesService } from './invoices.service';
 import { Invoice } from './entities/invoice.entity';
 import { Purchase } from '../purchases/entities/purchase.entity';
@@ -126,5 +126,75 @@ describe('InvoicesService', () => {
     expect(inv.baseCents).toBe(12100);
     expect(inv.vatCents).toBe(0);
     expect(inv.totalCents).toBe(12100);
+  });
+
+  // ── Autorización de LECTURA ──────────────────────────────────────────
+  describe('findOneAuthorized', () => {
+    const invoice = {
+      id: 'inv1',
+      number: '2026-0001',
+      maker: { id: 'maker1' },
+      buyer: { id: 'buyer1' },
+      project: { id: 'proj1', name: 'Llavero' },
+    };
+
+    it('devuelve la factura al maker emisor', async () => {
+      const invoiceRepo = { find: jest.fn(), findOne: jest.fn().mockResolvedValue(invoice) };
+      const dataSource = { transaction: jest.fn() };
+      const service = new InvoicesService(invoiceRepo as never, dataSource as never);
+
+      const result = await service.findOneAuthorized('inv1', 'maker1');
+      expect(result).toBe(invoice);
+      expect(invoiceRepo.findOne).toHaveBeenCalledWith({
+        where: { id: 'inv1' },
+        relations: ['maker', 'buyer', 'project'],
+      });
+    });
+
+    it('devuelve la factura al comprador', async () => {
+      const invoiceRepo = { find: jest.fn(), findOne: jest.fn().mockResolvedValue(invoice) };
+      const dataSource = { transaction: jest.fn() };
+      const service = new InvoicesService(invoiceRepo as never, dataSource as never);
+
+      const result = await service.findOneAuthorized('inv1', 'buyer1');
+      expect(result).toBe(invoice);
+    });
+
+    it('rechaza a un tercero autenticado con ForbiddenException', async () => {
+      const invoiceRepo = { find: jest.fn(), findOne: jest.fn().mockResolvedValue(invoice) };
+      const dataSource = { transaction: jest.fn() };
+      const service = new InvoicesService(invoiceRepo as never, dataSource as never);
+
+      await expect(service.findOneAuthorized('inv1', 'tercero')).rejects.toBeInstanceOf(
+        ForbiddenException,
+      );
+    });
+
+    it('lanza NotFoundException si la factura no existe', async () => {
+      const invoiceRepo = { find: jest.fn(), findOne: jest.fn().mockResolvedValue(null) };
+      const dataSource = { transaction: jest.fn() };
+      const service = new InvoicesService(invoiceRepo as never, dataSource as never);
+
+      await expect(service.findOneAuthorized('nope', 'maker1')).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
+    });
+  });
+
+  describe('findForMaker', () => {
+    it('filtra por el id del maker (where maker.id) y ordena por fecha desc', async () => {
+      const rows = [{ id: 'inv1' }, { id: 'inv2' }];
+      const invoiceRepo = { find: jest.fn().mockResolvedValue(rows), findOne: jest.fn() };
+      const dataSource = { transaction: jest.fn() };
+      const service = new InvoicesService(invoiceRepo as never, dataSource as never);
+
+      const result = await service.findForMaker('maker1');
+      expect(result).toBe(rows);
+      expect(invoiceRepo.find).toHaveBeenCalledWith({
+        where: { maker: { id: 'maker1' } },
+        relations: ['buyer', 'project'],
+        order: { createdAt: 'DESC' },
+      });
+    });
   });
 });

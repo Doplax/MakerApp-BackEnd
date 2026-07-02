@@ -186,7 +186,9 @@ export class UpdateProfileDto {
   @IsNumber()
   @IsOptional()
   @Min(0)
-  @Max(100)
+  // Máximo 30%: cubre los tipos de IVA reales (España 21%, y márgenes en otros
+  // países) y evita valores absurdos (p. ej. 100% haría base = total/2).
+  @Max(30)
   vatPercent?: number;
 
   @IsString()
