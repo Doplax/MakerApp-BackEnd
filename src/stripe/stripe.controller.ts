@@ -37,8 +37,10 @@ export class StripeController {
   async onboard(@CurrentUser() user: User) {
     // Reutiliza la cuenta Express existente del maker si ya la tiene: crear una
     // nueva en cada onboarding fugaría cuentas huérfanas y —al no persistirse—
-    // los pagos nunca se activarían. Persistimos el accountId en el usuario.
-    let accountId = user.stripeAccountId;
+    // los pagos nunca se activarían. Releemos el usuario fresco de BD para reducir
+    // la ventana de carrera que crearía cuentas duplicadas en clics concurrentes.
+    const fresh = await this.userRepo.findOne({ where: { id: user.id } });
+    let accountId = fresh?.stripeAccountId ?? user.stripeAccountId;
     if (!accountId) {
       accountId = await this.stripeService.createConnectAccount(user.email);
       await this.userRepo.update(user.id, { stripeAccountId: accountId });
@@ -63,6 +65,11 @@ export class StripeController {
       return { connected: false };
     }
     const s = await this.stripeService.getAccountStatus(user.stripeAccountId);
+    // Sincroniza chargesEnabled (además del webhook account.updated) para que
+    // acceptsPayments del perfil público refleje si el maker puede cobrar.
+    if (user.chargesEnabled !== s.chargesEnabled) {
+      await this.userRepo.update(user.id, { chargesEnabled: s.chargesEnabled });
+    }
     return { connected: true, ...s };
   }
 

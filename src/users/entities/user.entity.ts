@@ -192,6 +192,12 @@ export class User {
   @Column({ nullable: true, length: 50 })
   stripeAccountId!: string; // ID de la cuenta Express de Stripe Connect
 
+  // charges_enabled de Stripe (KYC completado): solo entonces el maker puede
+  // cobrar de verdad. Se sincroniza desde el webhook account.updated y desde
+  // GET /stripe/connect/status.
+  @Column({ default: false })
+  chargesEnabled!: boolean;
+
   @OneToMany(() => Filament, (filament) => filament.createdBy)
   filaments!: Filament[];
 

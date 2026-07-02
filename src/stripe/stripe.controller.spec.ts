@@ -15,7 +15,7 @@ describe('StripeController', () => {
   };
   let config: { get: jest.Mock };
   let projectRepo: { findOne: jest.Mock };
-  let userRepo: { update: jest.Mock };
+  let userRepo: { update: jest.Mock; findOne: jest.Mock };
   let controller: StripeController;
 
   beforeEach(() => {
@@ -26,7 +26,8 @@ describe('StripeController', () => {
     };
     config = { get: jest.fn().mockReturnValue('http://localhost:4210') };
     projectRepo = { findOne: jest.fn() };
-    userRepo = { update: jest.fn().mockResolvedValue(undefined) };
+    // findOne (re-lectura del usuario en onboard) devuelve null → cae al CurrentUser.
+    userRepo = { update: jest.fn().mockResolvedValue(undefined), findOne: jest.fn().mockResolvedValue(null) };
     controller = new StripeController(
       stripeService as never,
       config as never,

@@ -14,7 +14,8 @@ function makeService(secretKey?: string, feePercent?: string) {
     }),
   };
   const purchases = { recordSucceeded: jest.fn() };
-  return new StripeService(config as never, purchases as never);
+  const userRepo = { update: jest.fn() };
+  return new StripeService(config as never, purchases as never, userRepo as never);
 }
 
 describe('StripeService', () => {
@@ -66,6 +67,68 @@ describe('StripeService', () => {
       await expect(
         service.createPaymentIntent(1000, 'eur', '', {}),
       ).rejects.toBeInstanceOf(BadRequestException);
+    });
+  });
+
+  describe('handleWebhookEvent', () => {
+    function makeWithPurchases() {
+      const config = { get: jest.fn(), getOrThrow: jest.fn() };
+      const purchases = {
+        recordSucceeded: jest.fn().mockResolvedValue(undefined),
+        updateStatusByPaymentIntent: jest.fn().mockResolvedValue(undefined),
+      };
+      const userRepo = { update: jest.fn().mockResolvedValue(undefined) };
+      return {
+        service: new StripeService(config as never, purchases as never, userRepo as never),
+        purchases,
+      };
+    }
+
+    it('payment_intent.succeeded → registra la compra', async () => {
+      const { service, purchases } = makeWithPurchases();
+      await service.handleWebhookEvent({
+        type: 'payment_intent.succeeded',
+        data: { object: { id: 'pi_1', amount: 1000, currency: 'eur', metadata: { projectId: 'p1' } } },
+      });
+      expect(purchases.recordSucceeded).toHaveBeenCalledWith(
+        expect.objectContaining({ paymentIntentId: 'pi_1', amount: 1000 }),
+      );
+    });
+
+    it('charge.refunded TOTAL → marca la compra como REFUNDED', async () => {
+      const { service, purchases } = makeWithPurchases();
+      await service.handleWebhookEvent({
+        type: 'charge.refunded',
+        data: { object: { id: 'ch_1', payment_intent: 'pi_1', amount: 2000, amount_refunded: 2000 } },
+      });
+      expect(purchases.updateStatusByPaymentIntent).toHaveBeenCalledWith('pi_1', 'refunded');
+    });
+
+    it('charge.refunded PARCIAL → NO marca REFUNDED (la venta sigue válida)', async () => {
+      const { service, purchases } = makeWithPurchases();
+      await service.handleWebhookEvent({
+        type: 'charge.refunded',
+        data: { object: { id: 'ch_2', payment_intent: 'pi_2', amount: 2000, amount_refunded: 200 } },
+      });
+      expect(purchases.updateStatusByPaymentIntent).not.toHaveBeenCalled();
+    });
+
+    it('charge.dispute.created → marca la compra como REFUNDED', async () => {
+      const { service, purchases } = makeWithPurchases();
+      await service.handleWebhookEvent({
+        type: 'charge.dispute.created',
+        data: { object: { id: 'dp_1', payment_intent: 'pi_3' } },
+      });
+      expect(purchases.updateStatusByPaymentIntent).toHaveBeenCalledWith('pi_3', 'refunded');
+    });
+
+    it('payment_intent.canceled → marca la compra como FAILED', async () => {
+      const { service, purchases } = makeWithPurchases();
+      await service.handleWebhookEvent({
+        type: 'payment_intent.canceled',
+        data: { object: { id: 'pi_9' } },
+      });
+      expect(purchases.updateStatusByPaymentIntent).toHaveBeenCalledWith('pi_9', 'failed');
     });
   });
 });

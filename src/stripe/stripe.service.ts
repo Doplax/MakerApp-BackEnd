@@ -5,8 +5,12 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import Stripe from 'stripe';
 import { PurchasesService } from '../purchases/purchases.service.js';
+import { PurchaseStatus } from '../purchases/enums/purchase-status.enum.js';
+import { User } from '../users/entities/user.entity.js';
 
 // InstanceType evita el error TS2709 "Cannot use namespace Stripe as a type"
 type StripeClient = InstanceType<typeof Stripe>;
@@ -20,6 +24,8 @@ export class StripeService {
   constructor(
     private readonly config: ConfigService,
     private readonly purchases: PurchasesService,
+    @InjectRepository(User)
+    private readonly userRepo: Repository<User>,
   ) {
     this.feePercent = Number(config.get('STRIPE_PLATFORM_FEE_PERCENT') ?? 5);
   }
@@ -149,9 +155,73 @@ export class StripeService {
       case 'payment_intent.payment_failed':
         this.logger.warn(`PaymentIntent failed: ${object?.['id']}`);
         break;
-      case 'account.updated':
-        this.logger.log(`Stripe account updated: ${object?.['id']}`);
+      case 'payment_intent.canceled': {
+        const paymentIntentId = object?.['id'] as string;
+        this.logger.warn(`PaymentIntent canceled: ${paymentIntentId}`);
+        try {
+          await this.purchases.updateStatusByPaymentIntent(
+            paymentIntentId,
+            PurchaseStatus.FAILED,
+          );
+        } catch (e) {
+          this.logger.error(`Error marcando cancelado ${paymentIntentId}: ${(e as Error).message}`);
+        }
         break;
+      }
+      // Reembolso TOTAL o disputa: la venta deja de ser válida → REFUNDED. Esto
+      // excluye la compra de los ingresos y revoca la elegibilidad para reseñar.
+      // Un reembolso PARCIAL (amount_refunded < amount) NO invalida la venta.
+      case 'charge.refunded': {
+        const paymentIntentId = object?.['payment_intent'] as string;
+        const amount = Number(object?.['amount'] ?? 0);
+        const refunded = Number(object?.['amount_refunded'] ?? 0);
+        if (refunded < amount) {
+          this.logger.log(
+            `Reembolso parcial (${refunded}/${amount}) en PI ${paymentIntentId}: la venta sigue válida`,
+          );
+          break;
+        }
+        this.logger.log(`Charge refunded (total): PI ${paymentIntentId}`);
+        try {
+          await this.purchases.updateStatusByPaymentIntent(
+            paymentIntentId,
+            PurchaseStatus.REFUNDED,
+          );
+        } catch (e) {
+          this.logger.error(`Error marcando reembolso ${paymentIntentId}: ${(e as Error).message}`);
+        }
+        break;
+      }
+      case 'charge.dispute.created': {
+        const paymentIntentId = object?.['payment_intent'] as string;
+        this.logger.log(`Charge dispute: PI ${paymentIntentId}`);
+        try {
+          await this.purchases.updateStatusByPaymentIntent(
+            paymentIntentId,
+            PurchaseStatus.REFUNDED,
+          );
+        } catch (e) {
+          this.logger.error(`Error marcando disputa ${paymentIntentId}: ${(e as Error).message}`);
+        }
+        break;
+      }
+      case 'account.updated': {
+        const accountId = object?.['id'] as string;
+        const chargesEnabled = !!object?.['charges_enabled'];
+        this.logger.log(
+          `Stripe account updated: ${accountId} (charges_enabled=${chargesEnabled})`,
+        );
+        try {
+          // Sincroniza el estado real para que acceptsPayments (perfil público)
+          // solo sea true cuando el maker puede cobrar de verdad.
+          await this.userRepo.update({ stripeAccountId: accountId }, { chargesEnabled });
+        } catch (e) {
+          this.logger.error(
+            `Error sincronizando charges_enabled de ${accountId}: ${(e as Error).message}`,
+          );
+        }
+        break;
+      }
       default:
         this.logger.debug(`Unhandled Stripe event: ${type}`);
     }

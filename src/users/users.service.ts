@@ -512,6 +512,9 @@ export class UsersService {
         id: user.id,
         fullName: user.fullName,
         avatarUrl: user.avatarUrl,
+        // El comprador puede pagar online solo si el maker completó el onboarding
+        // de Stripe (chargesEnabled), no solo si existe la cuenta.
+        acceptsPayments: !!user.stripeAccountId && !!user.chargesEnabled,
       },
     };
   }
