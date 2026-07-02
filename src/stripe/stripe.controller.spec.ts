@@ -42,7 +42,7 @@ describe('StripeController', () => {
       id: 'proj1',
       isPublic: true,
       price: 10,
-      createdBy: { id: 'maker1', stripeAccountId: 'acct_maker' },
+      createdBy: { id: 'maker1', stripeAccountId: 'acct_maker', chargesEnabled: true },
     };
 
     it('deriva el importe del precio del proyecto e IGNORA dto.amount', async () => {
@@ -57,6 +57,42 @@ describe('StripeController', () => {
         'acct_maker',
         { projectId: 'proj1', buyerId: 'buyer1', makerId: 'maker1' },
       );
+    });
+
+    it('IGNORA dto.currency y usa SIEMPRE eur (moneda derivada en servidor)', async () => {
+      projectRepo.findOne.mockResolvedValue(project);
+      await controller.createPaymentIntent(
+        { projectId: 'proj1', currency: 'usd' } as never,
+        buyer,
+      );
+      expect(stripeService.createPaymentIntent).toHaveBeenCalledWith(
+        1000,
+        'eur', // NO 'usd' aunque el dto la pida
+        'acct_maker',
+        { projectId: 'proj1', buyerId: 'buyer1', makerId: 'maker1' },
+      );
+    });
+
+    it('redondea a céntimos con price=19.99 → amount 1999 (sin errores de coma flotante)', async () => {
+      projectRepo.findOne.mockResolvedValue({ ...project, price: 19.99 });
+      await controller.createPaymentIntent({ projectId: 'proj1' } as never, buyer);
+      expect(stripeService.createPaymentIntent).toHaveBeenCalledWith(
+        1999,
+        'eur',
+        'acct_maker',
+        expect.objectContaining({ projectId: 'proj1' }),
+      );
+    });
+
+    it('rechaza si el maker tiene stripeAccountId pero chargesEnabled=false', async () => {
+      projectRepo.findOne.mockResolvedValue({
+        ...project,
+        createdBy: { id: 'maker1', stripeAccountId: 'acct_maker', chargesEnabled: false },
+      });
+      await expect(
+        controller.createPaymentIntent({ projectId: 'proj1' } as never, buyer),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(stripeService.createPaymentIntent).not.toHaveBeenCalled();
     });
 
     it('rechaza si el proyecto no existe', async () => {

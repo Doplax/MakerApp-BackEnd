@@ -81,6 +81,7 @@ describe('StripeService', () => {
       return {
         service: new StripeService(config as never, purchases as never, userRepo as never),
         purchases,
+        userRepo,
       };
     }
 
@@ -129,6 +130,30 @@ describe('StripeService', () => {
         data: { object: { id: 'pi_9' } },
       });
       expect(purchases.updateStatusByPaymentIntent).toHaveBeenCalledWith('pi_9', 'failed');
+    });
+
+    it('account.updated con charges_enabled=true → sincroniza chargesEnabled:true', async () => {
+      const { service, userRepo } = makeWithPurchases();
+      await service.handleWebhookEvent({
+        type: 'account.updated',
+        data: { object: { id: 'acct_x', charges_enabled: true } },
+      });
+      expect(userRepo.update).toHaveBeenCalledWith(
+        { stripeAccountId: 'acct_x' },
+        { chargesEnabled: true },
+      );
+    });
+
+    it('account.updated sin charges_enabled → coerción !! a chargesEnabled:false', async () => {
+      const { service, userRepo } = makeWithPurchases();
+      await service.handleWebhookEvent({
+        type: 'account.updated',
+        data: { object: { id: 'acct_y' } },
+      });
+      expect(userRepo.update).toHaveBeenCalledWith(
+        { stripeAccountId: 'acct_y' },
+        { chargesEnabled: false },
+      );
     });
   });
 });

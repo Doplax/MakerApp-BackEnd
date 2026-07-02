@@ -100,14 +100,21 @@ export class StripeController {
     if (maker.id === buyer.id) {
       throw new BadRequestException('No puedes comprar tu propio proyecto');
     }
-    if (!maker.stripeAccountId) {
+    // Exigimos chargesEnabled además de stripeAccountId: acceptsPayments del perfil
+    // público es !!stripeAccountId && !!chargesEnabled, así que un maker con cuenta
+    // creada pero sin cobros habilitados NO debe poder recibir PaymentIntents.
+    if (!maker.stripeAccountId || !maker.chargesEnabled) {
       throw new BadRequestException('El maker no tiene pagos configurados');
     }
 
     const amount = Math.round(project.price * 100); // céntimos, calculado en servidor
+    // La moneda se DERIVA del servidor ('eur'): el precio del proyecto está en EUR.
+    // Ignoramos dto.currency (igual que dto.amount) para evitar que el cliente fuerce
+    // otra divisa y se cobre price*100 unidades de ESA divisa (desajuste importe↔moneda,
+    // y roto en monedas de cero decimales).
     return this.stripeService.createPaymentIntent(
       amount,
-      dto.currency ?? 'eur',
+      'eur',
       maker.stripeAccountId,
       { projectId: project.id, buyerId: buyer.id, makerId: maker.id },
     );

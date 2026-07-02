@@ -20,7 +20,11 @@ export class CreatePaymentIntentDto {
   @IsOptional()
   amount?: number;
 
-  /** Código de moneda ISO 4217 (default: eur) */
+  /**
+   * @deprecated La moneda se DERIVA en el servidor: el precio del proyecto está en
+   * EUR, así que el PaymentIntent se crea siempre en 'eur'. Este campo se IGNORA
+   * (evita que el cliente fuerce otra divisa y desajuste el importe).
+   */
   @IsString()
   @IsOptional()
   currency?: string;
