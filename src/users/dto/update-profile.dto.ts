@@ -22,6 +22,12 @@ class CustomLinkDto {
   @IsUrl()
   @MaxLength(500)
   url!: string;
+
+  // Nombre (kebab-case) de un icono de ionicons, p. ej. "logo-github".
+  @IsString()
+  @IsOptional()
+  @MaxLength(50)
+  icon?: string;
 }
 
 export class UpdateProfileDto {
@@ -92,7 +98,7 @@ export class UpdateProfileDto {
   @IsOptional()
   @ValidateNested({ each: true })
   @Type(() => CustomLinkDto)
-  customLinks?: { label: string; url: string }[];
+  customLinks?: { label: string; url: string; icon?: string }[];
 
   @IsOptional()
   @IsUUID()

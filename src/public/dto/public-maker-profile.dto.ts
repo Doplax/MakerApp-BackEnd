@@ -53,7 +53,7 @@ export class PublicMakerProfileDto {
   twitter?: string;
 
   // Links personalizados
-  customLinks?: { label: string; url: string }[];
+  customLinks?: { label: string; url: string; icon?: string }[];
 
   // Proyecto destacado del perfil (ID; el cliente lo resuelve sobre `projects`)
   featuredProjectId?: string | null;

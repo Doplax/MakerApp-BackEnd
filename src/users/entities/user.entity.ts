@@ -129,7 +129,7 @@ export class User {
 
   // ── Links adicionales (JSON array) ─────────────────────────
   @Column({ type: 'jsonb', nullable: true, default: null })
-  customLinks!: { label: string; url: string }[];
+  customLinks!: { label: string; url: string; icon?: string }[];
 
   // ── Proyecto destacado del perfil público ──────────────────
   @Column({ type: 'uuid', nullable: true })
