@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
+import { join } from 'path';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
 import { UsersModule } from './users/users.module.js';
@@ -48,6 +49,11 @@ import { ExchangeRatesModule } from './exchange-rates/exchange-rates.module.js';
         // synchronize DESACTIVADO por defecto (fail-safe): solo se activa con
         // DB_SYNCHRONIZE=true (desarrollo). En producción NO se define -> false.
         synchronize: process.env.DB_SYNCHRONIZE === 'true',
+        // En producción (synchronize off) ejecuta las migraciones pendientes al
+        // arrancar. TODAS son idempotentes (ADD COLUMN IF NOT EXISTS) -> seguro y
+        // sin pérdida de datos. En dev (synchronize on) no se ejecutan.
+        migrations: [join(__dirname, 'database', 'migrations', '*.js')],
+        migrationsRun: process.env.DB_SYNCHRONIZE !== 'true',
         // SSL condicional: activo solo si DB_SSL=true o la URL pide sslmode=require.
         // BD interna de EasyPanel = sin SSL; Neon (dev) = DB_SSL=true.
         ssl:
