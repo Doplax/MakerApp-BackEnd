@@ -26,6 +26,8 @@ export class StripeController {
     private readonly config: ConfigService,
     @InjectRepository(Project)
     private readonly projectRepo: Repository<Project>,
+    @InjectRepository(User)
+    private readonly userRepo: Repository<User>,
   ) {}
 
   // ── Onboarding Connect ───────────────────────────────────────
@@ -33,7 +35,15 @@ export class StripeController {
   @Post('connect/onboard')
   @UseGuards(AuthGuard('jwt'))
   async onboard(@CurrentUser() user: User) {
-    const accountId = await this.stripeService.createConnectAccount(user.email);
+    // Reutiliza la cuenta Express existente del maker si ya la tiene: crear una
+    // nueva en cada onboarding fugaría cuentas huérfanas y —al no persistirse—
+    // los pagos nunca se activarían. Persistimos el accountId en el usuario.
+    let accountId = user.stripeAccountId;
+    if (!accountId) {
+      accountId = await this.stripeService.createConnectAccount(user.email);
+      await this.userRepo.update(user.id, { stripeAccountId: accountId });
+    }
+
     const frontendUrl = this.config.get<string>(
       'FRONTEND_URL',
       'http://localhost:4210',
