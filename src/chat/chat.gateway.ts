@@ -20,10 +20,20 @@ import {
 } from '@nestjs/websockets';
 import { Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { Server, Socket } from 'socket.io';
+import { User } from '../users/entities/user.entity.js';
+import { ConversationParticipant } from './entities/conversation-participant.entity.js';
 
 interface JwtPayload {
   sub: string;
+}
+
+/** Estado de rate limiting por socket (ventana deslizante simple). */
+interface RateState {
+  count: number;
+  start: number;
 }
 
 @WebSocketGateway({
@@ -37,10 +47,19 @@ interface JwtPayload {
 export class ChatGateway implements OnGatewayConnection {
   @WebSocketServer() server!: Server;
   private readonly logger = new Logger(ChatGateway.name);
+  /** Máximo de eventos entrantes por socket en la ventana. */
+  private static readonly EVENT_LIMIT = 30;
+  private static readonly EVENT_WINDOW_MS = 10_000;
 
-  constructor(private readonly jwt: JwtService) {}
+  constructor(
+    private readonly jwt: JwtService,
+    @InjectRepository(User)
+    private readonly userRepo: Repository<User>,
+    @InjectRepository(ConversationParticipant)
+    private readonly participantRepo: Repository<ConversationParticipant>,
+  ) {}
 
-  handleConnection(client: Socket): void {
+  async handleConnection(client: Socket): Promise<void> {
     const token = this.extractToken(client);
     if (!token) {
       client.disconnect(true);
@@ -48,8 +67,18 @@ export class ChatGateway implements OnGatewayConnection {
     }
     try {
       const payload = this.jwt.verify<JwtPayload>(token);
-      (client.data as { userId?: string }).userId = payload.sub;
-      client.join(this.room(payload.sub));
+      // No basta con un JWT válido: revalidamos que el usuario existe y sigue
+      // ACTIVO (pudo ser desactivado/baneado tras emitir el token).
+      const user = await this.userRepo.findOne({
+        where: { id: payload.sub },
+        select: ['id', 'isActive'],
+      });
+      if (!user || !user.isActive) {
+        client.disconnect(true);
+        return;
+      }
+      (client.data as { userId?: string }).userId = user.id;
+      client.join(this.room(user.id));
     } catch {
       client.disconnect(true);
     }
@@ -65,18 +94,47 @@ export class ChatGateway implements OnGatewayConnection {
     this.server.to(this.room(recipientUserId)).emit('chat:read', payload);
   }
 
-  /** "Escribiendo…" — el cliente indica a qué usuario avisar; lo reenviamos. */
+  /**
+   * "Escribiendo…". No confiamos en un `toUserId` del cliente: verificamos que el
+   * emisor pertenece a la conversación y DERIVAMOS el destinatario (el otro
+   * participante). Con rate limiting para evitar flooding.
+   */
   @SubscribeMessage('chat:typing')
-  onTyping(
+  async onTyping(
     @ConnectedSocket() client: Socket,
-    @MessageBody() data: { conversationId: string; toUserId: string },
-  ): void {
+    @MessageBody() data: { conversationId: string },
+  ): Promise<void> {
     const userId = (client.data as { userId?: string }).userId;
-    if (!userId || !data?.toUserId) return;
-    this.server.to(this.room(data.toUserId)).emit('chat:typing', {
+    if (!userId || !data?.conversationId) return;
+    if (!this.allowEvent(client)) return;
+
+    const participants = await this.participantRepo.find({
+      where: { conversation: { id: data.conversationId } },
+      relations: ['user'],
+    });
+    const isMember = participants.some((p) => p.user?.id === userId);
+    if (!isMember) return; // el emisor no pertenece a la conversación
+    const other = participants.find((p) => p.user?.id !== userId);
+    if (!other?.user) return;
+
+    this.server.to(this.room(other.user.id)).emit('chat:typing', {
       conversationId: data.conversationId,
       userId,
     });
+  }
+
+  /** Rate limit por socket: ignora eventos que superen el límite en la ventana. */
+  private allowEvent(client: Socket): boolean {
+    const now = Date.now();
+    const data = client.data as { rate?: RateState };
+    const state = data.rate ?? { count: 0, start: now };
+    if (now - state.start > ChatGateway.EVENT_WINDOW_MS) {
+      state.count = 0;
+      state.start = now;
+    }
+    state.count += 1;
+    data.rate = state;
+    return state.count <= ChatGateway.EVENT_LIMIT;
   }
 
   private room(userId: string): string {

@@ -22,7 +22,15 @@ import { ChatGateway } from './chat.gateway.js';
     JwtModule.registerAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
-        secret: config.get<string>('JWT_SECRET') || 'MakerUp-super-secret-key',
+        // Sin fallback: si falta JWT_SECRET, abortar (no verificar con un secreto público).
+        secret: (() => {
+          const s = config.get<string>('JWT_SECRET');
+          if (!s)
+            throw new Error(
+              'JWT_SECRET no está definido — abortando arranque por seguridad',
+            );
+          return s;
+        })(),
       }),
     }),
   ],
