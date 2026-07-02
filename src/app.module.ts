@@ -21,6 +21,7 @@ import { FilamentCatalogModule } from './filament-catalog/filament-catalog.modul
 import { ReviewsModule } from './reviews/reviews.module.js';
 import { StripeModule } from './stripe/stripe.module.js';
 import { PurchasesModule } from './purchases/purchases.module.js';
+import { InvoicesModule } from './invoices/invoices.module.js';
 import { MakerReviewsModule } from './maker-reviews/maker-reviews.module.js';
 import { ChatModule } from './chat/chat.module.js';
 import { CloudinaryModule } from './cloudinary/cloudinary.module.js';
@@ -78,6 +79,7 @@ import { ExchangeRatesModule } from './exchange-rates/exchange-rates.module.js';
     ReviewsModule,
     StripeModule,
     PurchasesModule,
+    InvoicesModule,
     MakerReviewsModule,
     ChatModule,
     CloudinaryModule,
