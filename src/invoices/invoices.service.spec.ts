@@ -128,6 +128,48 @@ describe('InvoicesService', () => {
     expect(inv.totalCents).toBe(12100);
   });
 
+  // ── Datos fiscales del emisor obligatorios ───────────────────────────
+  it('rechaza emitir si el maker no tiene NIF/CIF y NO consume el contador', async () => {
+    const { service, manager } = setup({
+      purchase: succeededPurchase,
+      seq: 1,
+      maker: { ...maker, nifCif: null },
+    });
+    await expect(service.issueForPurchase('pur1', 'maker1')).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+    // No se toca la secuencia ni se crea/guarda factura.
+    expect(manager.query).not.toHaveBeenCalled();
+    expect(manager.create).not.toHaveBeenCalled();
+    expect(manager.save).not.toHaveBeenCalled();
+  });
+
+  it('rechaza emitir si el maker no tiene dirección fiscal y NO consume el contador', async () => {
+    const { service, manager } = setup({
+      purchase: succeededPurchase,
+      seq: 1,
+      maker: { ...maker, fiscalAddress: '   ' }, // vacío tras trim
+    });
+    await expect(service.issueForPurchase('pur1', 'maker1')).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+    expect(manager.query).not.toHaveBeenCalled();
+    expect(manager.create).not.toHaveBeenCalled();
+    expect(manager.save).not.toHaveBeenCalled();
+  });
+
+  it('emite normalmente cuando el maker tiene NIF y dirección fiscal (consume contador)', async () => {
+    const { service, manager } = setup({ purchase: succeededPurchase, seq: 1, maker });
+    const inv = (await service.issueForPurchase('pur1', 'maker1')) as {
+      makerNif: string | null;
+      makerAddress: string | null;
+    };
+    expect(manager.query).toHaveBeenCalledTimes(1);
+    expect(manager.save).toHaveBeenCalledTimes(1);
+    expect(inv.makerNif).toBe('B12345678');
+    expect(inv.makerAddress).toBe('Calle Falsa 123');
+  });
+
   // ── Autorización de LECTURA ──────────────────────────────────────────
   describe('findOneAuthorized', () => {
     const invoice = {

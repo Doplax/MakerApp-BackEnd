@@ -70,6 +70,16 @@ export class InvoicesService {
       const maker = await m.findOne(User, { where: { id: makerId } });
       if (!maker) throw new NotFoundException('Maker no encontrado');
 
+      // ── Datos fiscales obligatorios del emisor ───────────────
+      // Una factura legal española exige NIF y datos del emisor. Validamos
+      // ANTES de consumir el correlativo: así no gastamos número (ni dejamos
+      // huecos lógicos en la serie) con un snapshot fiscal incompleto.
+      if (!maker.nifCif?.trim() || !maker.fiscalAddress?.trim()) {
+        throw new BadRequestException(
+          'Completa tus datos fiscales (NIF/CIF y dirección) en tu perfil antes de emitir facturas',
+        );
+      }
+
       // ── Número correlativo (serie = año), atómico ────────────
       // UPSERT con incremento en el mismo statement: evita la carrera de
       // "leer-null-y-crear" y el bloqueo pesimista sobre una fila inexistente.
