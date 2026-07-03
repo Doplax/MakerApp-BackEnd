@@ -13,6 +13,22 @@ import { User } from '../users/entities/user.entity.js';
 import { CreateReviewDto } from './dto/create-review.dto.js';
 import { UpdateReviewDto } from './dto/update-review.dto.js';
 
+/** Autor tal como se expone en endpoints públicos (sin PII ni datos fiscales). */
+export interface PublicReviewAuthor {
+  id: string;
+  fullName: string;
+  avatarUrl: string | null;
+}
+
+/** Reseña de proyecto serializada para lectura pública. */
+export interface PublicProjectReview {
+  id: string;
+  rating: number;
+  comment: string | null;
+  createdAt: Date;
+  author: PublicReviewAuthor | null;
+}
+
 @Injectable()
 export class ReviewsService {
   constructor(
@@ -47,12 +63,29 @@ export class ReviewsService {
     return this.reviewRepo.save(review);
   }
 
-  async findByProject(projectId: string): Promise<Review[]> {
-    return this.reviewRepo.find({
+  async findByProject(projectId: string): Promise<PublicProjectReview[]> {
+    const reviews = await this.reviewRepo.find({
       where: { project: { id: projectId } },
       relations: ['author'],
       order: { createdAt: 'DESC' },
     });
+    // Endpoint PÚBLICO: exponer SOLO campos públicos del autor. La entidad User
+    // completa filtraría email, nifCif, fiscalAddress, role, isActive… (el
+    // ClassSerializerInterceptor global solo excluye password/tokens). Nunca
+    // devolver la entidad User completa. Mismo criterio que MakerReviewsService.
+    return reviews.map((r) => ({
+      id: r.id,
+      rating: r.rating,
+      comment: r.comment,
+      createdAt: r.createdAt,
+      author: r.author
+        ? {
+            id: r.author.id,
+            fullName: r.author.fullName,
+            avatarUrl: r.author.avatarUrl ?? null,
+          }
+        : null,
+    }));
   }
 
   async update(
