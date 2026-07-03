@@ -1,3 +1,4 @@
+import { ForbiddenException } from '@nestjs/common';
 import { ReviewsService } from './reviews.service';
 
 /** Repositorio mock con los métodos que usa el servicio. */
@@ -9,6 +10,13 @@ function repoMock() {
     save: jest.fn(async (x: unknown) => x),
     remove: jest.fn(async () => undefined),
     createQueryBuilder: jest.fn(),
+  };
+}
+
+/** Mock del PurchasesService: solo se usa hasSucceededPurchase en create(). */
+function purchasesMock() {
+  return {
+    hasSucceededPurchase: jest.fn(),
   };
 }
 
@@ -39,12 +47,18 @@ function fullAuthor() {
 describe('ReviewsService', () => {
   let reviewRepo: ReturnType<typeof repoMock>;
   let projectRepo: ReturnType<typeof repoMock>;
+  let purchases: ReturnType<typeof purchasesMock>;
   let service: ReviewsService;
 
   beforeEach(() => {
     reviewRepo = repoMock();
     projectRepo = repoMock();
-    service = new ReviewsService(reviewRepo as never, projectRepo as never);
+    purchases = purchasesMock();
+    service = new ReviewsService(
+      reviewRepo as never,
+      projectRepo as never,
+      purchases as never,
+    );
   });
 
   describe('findByProject (lectura pública)', () => {
@@ -242,6 +256,67 @@ describe('ReviewsService', () => {
           'id',
         ]);
       }
+    });
+  });
+
+  describe('create (reseñas verificadas por compra)', () => {
+    const dto = { projectId: 'proj-1', rating: 5, comment: 'Genial' };
+    const buyer = { id: 'buyer-1', fullName: 'Compradora' } as never;
+
+    /** Proyecto público de otro maker (maker-9), sobre el que reseñar. */
+    function publicProject() {
+      return {
+        id: 'proj-1',
+        isPublic: true,
+        createdBy: { id: 'maker-9' },
+      };
+    }
+
+    it('lanza ForbiddenException si el autor NO ha comprado al maker', async () => {
+      projectRepo.findOne.mockResolvedValue(publicProject());
+      purchases.hasSucceededPurchase.mockResolvedValue(false);
+
+      await expect(service.create(dto as never, buyer)).rejects.toThrow(
+        ForbiddenException,
+      );
+      await expect(service.create(dto as never, buyer)).rejects.toThrow(
+        'Solo puedes reseñar proyectos de makers a los que has comprado',
+      );
+
+      // Se consultó la compra con (authorId, makerId) en ese orden.
+      expect(purchases.hasSucceededPurchase).toHaveBeenCalledWith(
+        'buyer-1',
+        'maker-9',
+      );
+      // Sin compra no se comprueba duplicado ni se persiste nada.
+      expect(reviewRepo.save).not.toHaveBeenCalled();
+    });
+
+    it('crea la reseña si el autor SÍ ha comprado al maker', async () => {
+      projectRepo.findOne.mockResolvedValue(publicProject());
+      purchases.hasSucceededPurchase.mockResolvedValue(true);
+      reviewRepo.findOne.mockResolvedValue(null); // sin reseña previa
+
+      const created = await service.create(dto as never, buyer);
+
+      expect(purchases.hasSucceededPurchase).toHaveBeenCalledWith(
+        'buyer-1',
+        'maker-9',
+      );
+      // Se crea con los datos del dto + autor + proyecto y se guarda.
+      expect(reviewRepo.create).toHaveBeenCalledWith({
+        rating: 5,
+        comment: 'Genial',
+        author: buyer,
+        project: publicProject(),
+      });
+      expect(reviewRepo.save).toHaveBeenCalledTimes(1);
+      expect(created).toEqual({
+        rating: 5,
+        comment: 'Genial',
+        author: buyer,
+        project: publicProject(),
+      });
     });
   });
 });

@@ -12,6 +12,7 @@ import { Project } from '../projects/entities/project.entity.js';
 import { User } from '../users/entities/user.entity.js';
 import { CreateReviewDto } from './dto/create-review.dto.js';
 import { UpdateReviewDto } from './dto/update-review.dto.js';
+import { PurchasesService } from '../purchases/purchases.service.js';
 
 /** Autor tal como se expone en endpoints públicos (sin PII ni datos fiscales). */
 export interface PublicReviewAuthor {
@@ -36,6 +37,7 @@ export class ReviewsService {
     private readonly reviewRepo: Repository<Review>,
     @InjectRepository(Project)
     private readonly projectRepo: Repository<Project>,
+    private readonly purchasesService: PurchasesService,
   ) {}
 
   async create(dto: CreateReviewDto, author: User): Promise<Review> {
@@ -48,6 +50,17 @@ export class ReviewsService {
       throw new ForbiddenException('Solo se pueden reseñar proyectos públicos');
     if (project.createdBy.id === author.id)
       throw new BadRequestException('No puedes reseñar tu propio proyecto');
+
+    // Reseñas verificadas: solo puede reseñar quien ha comprado al maker del
+    // proyecto (al menos una compra SUCCEEDED). Sin compra → 403.
+    const hasPurchased = await this.purchasesService.hasSucceededPurchase(
+      author.id,
+      project.createdBy.id,
+    );
+    if (!hasPurchased)
+      throw new ForbiddenException(
+        'Solo puedes reseñar proyectos de makers a los que has comprado',
+      );
 
     const existing = await this.reviewRepo.findOne({
       where: { project: { id: dto.projectId }, author: { id: author.id } },
