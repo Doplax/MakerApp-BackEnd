@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { CreateProjectDto } from './dto/create-project.dto.js';
 import { UpdateProjectDto } from './dto/update-project.dto.js';
+import { FindProjectsQueryDto } from './dto/find-projects-query.dto.js';
 import { Project } from './entities/project.entity.js';
 import { User } from '../users/entities/user.entity.js';
 import { Filament } from '../filaments/entities/filament.entity.js';
@@ -10,6 +11,17 @@ import { Printer } from '../printers/entities/printer.entity.js';
 import { PrintLog } from '../print-logs/entities/print-log.entity.js';
 import { PrintStatus } from '../common/enums/index.js';
 import { CloudinaryService } from '../cloudinary/cloudinary.service.js';
+
+/** Envoltorio de paginación (mismo shape que el resto de la API: print-logs, etc.). */
+export interface PaginatedProjects {
+  data: Project[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+const DEFAULT_PAGE_SIZE = 10;
+const DAY_MS = 86_400_000;
 
 @Injectable()
 export class ProjectsService {
@@ -56,18 +68,60 @@ export class ProjectsService {
     return saved;
   }
 
-  async findAll(user: User): Promise<Project[]> {
-    return this.projectRepository
+  /**
+   * Lista los proyectos del usuario.
+   *
+   * Paginación **opt-in**: sin `page`/`limit` devuelve la lista COMPLETA (`Project[]`),
+   * como siempre — de ella dependen el kanban, finanzas, ajustes y el detalle de
+   * proyecto. Con `page` o `limit` devuelve el envoltorio `{ data, total, page, limit }`.
+   */
+  async findAll(
+    user: User,
+    query: FindProjectsQueryDto = {},
+  ): Promise<Project[] | PaginatedProjects> {
+    const wantsPagination =
+      query.page !== undefined || query.limit !== undefined;
+
+    const qb = this.projectRepository
       .createQueryBuilder('project')
       .leftJoinAndSelect('project.filaments', 'filament')
       .leftJoinAndSelect('project.printer', 'printer')
       .leftJoinAndSelect('project.printLogs', 'printLog')
       .leftJoinAndSelect('printLog.filament', 'printLogFilament')
       .leftJoinAndSelect('printLog.printer', 'printLogPrinter')
-      .where('project.createdBy = :userId', { userId: user.id })
-      .orderBy('project.createdAt', 'DESC')
-      .addOrderBy('printLog.createdAt', 'DESC')
-      .getMany();
+      .where('project.createdBy = :userId', { userId: user.id });
+
+    const cutoff = this.periodCutoff(query.period);
+    if (cutoff) qb.andWhere('project.createdAt >= :cutoff', { cutoff });
+
+    qb.orderBy('project.createdAt', 'DESC');
+
+    if (!wantsPagination) {
+      // Comportamiento histórico: lista completa con las impresiones ordenadas.
+      return qb.addOrderBy('printLog.createdAt', 'DESC').getMany();
+    }
+
+    // Paginación: ordenamos SOLO por columnas de la raíz (createdAt + id como
+    // desempate estable). `filaments` y `printLogs` son relaciones "to-many", así que
+    // TypeORM pagina por ids distintos; ordenar por columnas de un join rompería el
+    // SELECT DISTINCT en Postgres.
+    const page = query.page && query.page > 0 ? query.page : 1;
+    const limit = query.limit && query.limit > 0 ? query.limit : DEFAULT_PAGE_SIZE;
+
+    const [data, total] = await qb
+      .addOrderBy('project.id', 'DESC')
+      .skip((page - 1) * limit)
+      .take(limit)
+      .getManyAndCount();
+
+    return { data, total, page, limit };
+  }
+
+  /** Fecha de corte para el filtro por antigüedad (null = sin filtro). */
+  private periodCutoff(period?: 'all' | 'week' | 'month'): Date | null {
+    if (!period || period === 'all') return null;
+    const ms = period === 'week' ? 7 * DAY_MS : 30 * DAY_MS;
+    return new Date(Date.now() - ms);
   }
 
   async findOne(id: string, user: User): Promise<Project> {

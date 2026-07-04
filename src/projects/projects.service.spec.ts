@@ -1,5 +1,35 @@
 import { ProjectsService } from './projects.service';
 
+/**
+ * QueryBuilder encadenable: cada método del builder devuelve el propio mock, y
+ * `getMany`/`getManyAndCount` devuelven lo que se configure. Registra las llamadas a
+ * `skip`/`take`/`andWhere` para poder aserverlas.
+ */
+function queryBuilderMock() {
+  const qb: Record<string, jest.Mock> = {};
+  const chain =
+    (name: string) =>
+    (...args: unknown[]) => {
+      qb[`${name}Args`]?.(...args);
+      return qb;
+    };
+  for (const m of [
+    'leftJoinAndSelect',
+    'where',
+    'andWhere',
+    'orderBy',
+    'addOrderBy',
+    'skip',
+    'take',
+  ]) {
+    qb[`${m}Args`] = jest.fn();
+    qb[m] = jest.fn(chain(m));
+  }
+  qb.getMany = jest.fn();
+  qb.getManyAndCount = jest.fn();
+  return qb;
+}
+
 /** Repositorio mock con los métodos que usa el servicio. */
 function repoMock() {
   return {
@@ -78,5 +108,73 @@ describe('ProjectsService', () => {
     expect(cloudinary.deleteByUrl).toHaveBeenCalledWith(
       'https://api.test/uploads/licenses/l.pdf',
     );
+  });
+
+  describe('findAll()', () => {
+    it('sin page/limit devuelve la lista COMPLETA (array) — no pagina', async () => {
+      const qb = queryBuilderMock();
+      const all = [{ id: 'a' }, { id: 'b' }];
+      qb.getMany.mockResolvedValue(all);
+      projectRepo.createQueryBuilder.mockReturnValue(qb);
+
+      const result = await service.findAll(user, {});
+
+      expect(result).toBe(all);
+      expect(qb.getMany).toHaveBeenCalled();
+      expect(qb.getManyAndCount).not.toHaveBeenCalled();
+      // No debe aplicar límites cuando no se pagina.
+      expect(qb.skip).not.toHaveBeenCalled();
+      expect(qb.take).not.toHaveBeenCalled();
+    });
+
+    it('con page/limit devuelve { data, total, page, limit } y aplica skip/take', async () => {
+      const qb = queryBuilderMock();
+      const pageData = [{ id: 'x' }];
+      qb.getManyAndCount.mockResolvedValue([pageData, 23]);
+      projectRepo.createQueryBuilder.mockReturnValue(qb);
+
+      const result = await service.findAll(user, { page: 3, limit: 10 });
+
+      expect(result).toEqual({ data: pageData, total: 23, page: 3, limit: 10 });
+      // page 3, limit 10 → offset 20
+      expect(qb.skipArgs).toHaveBeenCalledWith(20);
+      expect(qb.takeArgs).toHaveBeenCalledWith(10);
+      expect(qb.getMany).not.toHaveBeenCalled();
+    });
+
+    it('solo con limit pagina (page por defecto = 1, offset 0)', async () => {
+      const qb = queryBuilderMock();
+      qb.getManyAndCount.mockResolvedValue([[], 0]);
+      projectRepo.createQueryBuilder.mockReturnValue(qb);
+
+      const result = await service.findAll(user, { limit: 5 });
+
+      expect(result).toEqual({ data: [], total: 0, page: 1, limit: 5 });
+      expect(qb.skipArgs).toHaveBeenCalledWith(0);
+      expect(qb.takeArgs).toHaveBeenCalledWith(5);
+    });
+
+    it('period="week" añade un filtro de fecha de corte', async () => {
+      const qb = queryBuilderMock();
+      qb.getMany.mockResolvedValue([]);
+      projectRepo.createQueryBuilder.mockReturnValue(qb);
+
+      await service.findAll(user, { period: 'week' });
+
+      expect(qb.andWhereArgs).toHaveBeenCalledWith(
+        'project.createdAt >= :cutoff',
+        expect.objectContaining({ cutoff: expect.any(Date) }),
+      );
+    });
+
+    it('period="all" no añade filtro de fecha', async () => {
+      const qb = queryBuilderMock();
+      qb.getMany.mockResolvedValue([]);
+      projectRepo.createQueryBuilder.mockReturnValue(qb);
+
+      await service.findAll(user, { period: 'all' });
+
+      expect(qb.andWhereArgs).not.toHaveBeenCalled();
+    });
   });
 });

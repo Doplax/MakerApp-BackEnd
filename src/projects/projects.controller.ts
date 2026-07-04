@@ -6,6 +6,7 @@ import {
   Patch,
   Param,
   Delete,
+  Query,
   ParseUUIDPipe,
   UseGuards,
 } from '@nestjs/common';
@@ -13,6 +14,7 @@ import { AuthGuard } from '@nestjs/passport';
 import { ProjectsService } from './projects.service.js';
 import { CreateProjectDto } from './dto/create-project.dto.js';
 import { UpdateProjectDto } from './dto/update-project.dto.js';
+import { FindProjectsQueryDto } from './dto/find-projects-query.dto.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { User } from '../users/entities/user.entity.js';
 
@@ -30,8 +32,8 @@ export class ProjectsController {
   }
 
   @Get()
-  findAll(@CurrentUser() user: User) {
-    return this.projectsService.findAll(user);
+  findAll(@CurrentUser() user: User, @Query() query: FindProjectsQueryDto) {
+    return this.projectsService.findAll(user, query);
   }
 
   @Get(':id')
