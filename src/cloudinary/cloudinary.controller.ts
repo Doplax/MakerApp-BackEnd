@@ -1,5 +1,6 @@
 import {
   Controller,
+  Get,
   Post,
   UploadedFile,
   UseGuards,
@@ -13,17 +14,47 @@ import type {
   CloudinaryFolder,
   DocumentFolder,
 } from './cloudinary.service.js';
+import { StorageSweeperService } from './storage-sweeper.service.js';
 import { AuthGuard } from '@nestjs/passport';
+import { RolesGuard } from '../common/guards/roles.guard.js';
+import { Roles } from '../common/decorators/roles.decorator.js';
+import { UserRole } from '../common/enums/index.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { User } from '../users/entities/user.entity.js';
 
 const MAX_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB
 const MAX_DOC_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
+/** Horas mínimas de antigüedad para considerar un fichero huérfano (evita borrar subidas en curso). */
+const DEFAULT_GRACE_HOURS = 24;
 
 @Controller('upload')
 @UseGuards(AuthGuard('jwt'))
 export class CloudinaryController {
-  constructor(private readonly cloudinary: CloudinaryService) {}
+  constructor(
+    private readonly cloudinary: CloudinaryService,
+    private readonly sweeper: StorageSweeperService,
+  ) {}
+
+  /** Dry-run (solo admin): lista los ficheros huérfanos que se borrarían, sin tocar nada. */
+  @Get('orphans')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN)
+  scanOrphans(@Query('graceHours') graceHours?: string) {
+    return this.sweeper.scan(this.parseGrace(graceHours));
+  }
+
+  /** Barrido real (solo admin): borra del volumen los ficheros huérfanos. */
+  @Post('sweep')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN)
+  sweepOrphans(@Query('graceHours') graceHours?: string) {
+    return this.sweeper.sweep(this.parseGrace(graceHours));
+  }
+
+  private parseGrace(value?: string): number {
+    const n = Number(value);
+    return Number.isFinite(n) && n >= 0 ? n : DEFAULT_GRACE_HOURS;
+  }
 
   @Post('image')
   @UseInterceptors(
