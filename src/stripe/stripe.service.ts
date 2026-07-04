@@ -2,6 +2,7 @@ import {
   Injectable,
   Logger,
   BadRequestException,
+  ForbiddenException,
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -114,6 +115,37 @@ export class StripeService {
     });
 
     return { clientSecret: pi.client_secret!, paymentIntentId: pi.id };
+  }
+
+  /**
+   * Reconciliación (red de seguridad del webhook): recupera el PaymentIntent de
+   * Stripe y, si está `succeeded`, registra la compra (idempotente vía
+   * PurchasesService.recordSucceeded). Se invoca desde el front tras un pago OK y
+   * al volver de 3DS, para que la venta quede registrada AUNQUE el webhook no
+   * llegue o se retrase. Verifica que el PI pertenece al comprador (metadata).
+   */
+  async confirmPurchase(
+    paymentIntentId: string,
+    buyerId: string,
+  ): Promise<{ recorded: boolean; status: string }> {
+    const pi = await this.stripe.paymentIntents.retrieve(paymentIntentId);
+    const metadata = (pi.metadata ?? {}) as Record<string, string>;
+    // Seguridad: solo el comprador dueño del PI (según metadata) puede reconciliarlo.
+    if (metadata['buyerId'] && metadata['buyerId'] !== buyerId) {
+      throw new ForbiddenException('Este pago no te pertenece');
+    }
+    if (pi.status !== 'succeeded') {
+      return { recorded: false, status: pi.status as string };
+    }
+    await this.purchases.recordSucceeded({
+      paymentIntentId: pi.id,
+      amount: Number(pi.amount ?? 0),
+      currency: (pi.currency as string) ?? 'eur',
+      projectId: metadata['projectId'],
+      buyerId: metadata['buyerId'],
+      makerId: metadata['makerId'],
+    });
+    return { recorded: true, status: pi.status as string };
   }
 
   // ── Webhook ──────────────────────────────────────────────────

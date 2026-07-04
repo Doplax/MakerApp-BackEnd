@@ -1,4 +1,4 @@
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { StripeService } from './stripe.service';
 
 function makeService(secretKey?: string, feePercent?: string) {
@@ -154,6 +154,76 @@ describe('StripeService', () => {
         { stripeAccountId: 'acct_y' },
         { chargesEnabled: false },
       );
+    });
+  });
+
+  describe('confirmPurchase (reconciliación)', () => {
+    function make() {
+      const config = { get: jest.fn(), getOrThrow: jest.fn() };
+      const purchases = { recordSucceeded: jest.fn().mockResolvedValue(undefined) };
+      const userRepo = { update: jest.fn() };
+      const service = new StripeService(
+        config as never,
+        purchases as never,
+        userRepo as never,
+      );
+      const retrieve = jest.fn();
+      (service as unknown as { _stripe: unknown })._stripe = {
+        paymentIntents: { retrieve },
+      };
+      return { service, purchases, retrieve };
+    }
+
+    it('PI succeeded → registra la compra y devuelve recorded:true', async () => {
+      const { service, purchases, retrieve } = make();
+      retrieve.mockResolvedValue({
+        id: 'pi_1',
+        status: 'succeeded',
+        amount: 800,
+        currency: 'eur',
+        metadata: { projectId: 'p1', buyerId: 'b1', makerId: 'm1' },
+      });
+      const res = await service.confirmPurchase('pi_1', 'b1');
+      expect(retrieve).toHaveBeenCalledWith('pi_1');
+      expect(purchases.recordSucceeded).toHaveBeenCalledWith(
+        expect.objectContaining({
+          paymentIntentId: 'pi_1',
+          amount: 800,
+          buyerId: 'b1',
+          makerId: 'm1',
+          projectId: 'p1',
+        }),
+      );
+      expect(res).toEqual({ recorded: true, status: 'succeeded' });
+    });
+
+    it('PI no succeeded → NO registra y devuelve recorded:false con el estado', async () => {
+      const { service, purchases, retrieve } = make();
+      retrieve.mockResolvedValue({
+        id: 'pi_2',
+        status: 'processing',
+        amount: 800,
+        currency: 'eur',
+        metadata: { buyerId: 'b1' },
+      });
+      const res = await service.confirmPurchase('pi_2', 'b1');
+      expect(purchases.recordSucceeded).not.toHaveBeenCalled();
+      expect(res).toEqual({ recorded: false, status: 'processing' });
+    });
+
+    it('comprador distinto del dueño del PI → ForbiddenException y NO registra', async () => {
+      const { service, purchases, retrieve } = make();
+      retrieve.mockResolvedValue({
+        id: 'pi_3',
+        status: 'succeeded',
+        amount: 800,
+        currency: 'eur',
+        metadata: { buyerId: 'otro' },
+      });
+      await expect(service.confirmPurchase('pi_3', 'b1')).rejects.toBeInstanceOf(
+        ForbiddenException,
+      );
+      expect(purchases.recordSucceeded).not.toHaveBeenCalled();
     });
   });
 });

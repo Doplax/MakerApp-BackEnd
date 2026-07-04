@@ -11,6 +11,7 @@ import {
 } from '@nestjs/common';
 import { StripeService } from './stripe.service.js';
 import { CreatePaymentIntentDto } from './dto/create-payment-intent.dto.js';
+import { ConfirmPurchaseDto } from './dto/confirm-purchase.dto.js';
 import { AuthGuard } from '@nestjs/passport';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { User } from '../users/entities/user.entity.js';
@@ -118,6 +119,20 @@ export class StripeController {
       maker.stripeAccountId,
       { projectId: project.id, buyerId: buyer.id, makerId: maker.id },
     );
+  }
+
+  // ── Reconciliación (respaldo del webhook) ────────────────────
+
+  // El front llama aquí tras un pago OK (y al volver de 3DS) para que la compra
+  // se registre aunque el webhook de Stripe no llegue o se retrase. Idempotente.
+  @Post('confirm')
+  @UseGuards(AuthGuard('jwt'))
+  @HttpCode(200)
+  async confirmPurchase(
+    @Body() dto: ConfirmPurchaseDto,
+    @CurrentUser() buyer: User,
+  ) {
+    return this.stripeService.confirmPurchase(dto.paymentIntentId, buyer.id);
   }
 
   // ── Webhook ──────────────────────────────────────────────────
