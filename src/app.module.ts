@@ -4,6 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { join } from 'path';
+import { resolveDatabaseUrl, resolveDatabaseSsl } from './database/db-config.js';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
 import { UsersModule } from './users/users.module.js';
@@ -41,7 +42,7 @@ import { ExchangeRatesModule } from './exchange-rates/exchange-rates.module.js';
     TypeOrmModule.forRootAsync({
       useFactory: () => ({
         type: 'postgres',
-        url: process.env.DATABASE_URL,
+        url: resolveDatabaseUrl(),
         host: process.env.DB_HOST || 'localhost',
         port: parseInt(process.env.DB_PORT || '5432', 10),
         username: process.env.DB_USERNAME || 'maker_user',
@@ -56,13 +57,8 @@ import { ExchangeRatesModule } from './exchange-rates/exchange-rates.module.js';
         // sin pérdida de datos. En dev (synchronize on) no se ejecutan.
         migrations: [join(__dirname, 'database', 'migrations', '*.js')],
         migrationsRun: process.env.DB_SYNCHRONIZE !== 'true',
-        // SSL condicional: activo solo si DB_SSL=true o la URL pide sslmode=require.
-        // BD interna de EasyPanel = sin SSL; Neon (dev) = DB_SSL=true.
-        ssl:
-          process.env.DB_SSL === 'true' ||
-          process.env.DATABASE_URL?.includes('sslmode=require')
-            ? { rejectUnauthorized: false }
-            : false,
+        // SSL según la URL resuelta (helper). EasyPanel (prod) = sin SSL; Neon (dev) = SSL.
+        ssl: resolveDatabaseSsl(),
       }),
     }),
     UsersModule,

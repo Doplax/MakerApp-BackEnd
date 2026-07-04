@@ -4,7 +4,9 @@ const { Client } = require('pg');
 const bcrypt = require('bcrypt');
 
 (async () => {
-  const url = process.env.DATABASE_URL;
+  // Selección de BD por entorno (ver context/database.md): en dev usa DATABASE_URL_DEV (Neon).
+  const isProd = process.env.NODE_ENV === 'production';
+  const url = (!isProd && process.env.DATABASE_URL_DEV) || process.env.DATABASE_URL;
   console.log('DB host:', url ? url.split('@')[1] : '(local)');
   const client = new Client({
     connectionString: url,

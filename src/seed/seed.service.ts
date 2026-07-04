@@ -13,6 +13,7 @@ import { Purchase } from '../purchases/entities/purchase.entity.js';
 import { Review } from '../reviews/entities/review.entity.js';
 import { MakerReview } from '../maker-reviews/entities/maker-review.entity.js';
 import { Follow } from '../follows/entities/follow.entity.js';
+import { resolveDatabaseUrl } from '../database/db-config.js';
 import { Notification } from '../notifications/entities/notification.entity.js';
 import { PurchaseStatus } from '../purchases/enums/purchase-status.enum.js';
 import { NotificationType } from '../notifications/enums/notification-type.enum.js';
@@ -71,7 +72,7 @@ export class SeedService {
     // Guard de seguridad: este seed es DESTRUCTIVO. Se bloquea si DATABASE_URL
     // apunta a una BD remota (Neon/producción). Solo se permite en local, salvo
     // override EXPLÍCITO con SEED_ALLOW_REMOTE=true.
-    const dbUrl = process.env.DATABASE_URL ?? '';
+    const dbUrl = resolveDatabaseUrl() ?? '';
     const looksLocal =
       dbUrl === '' ||
       dbUrl.includes('localhost') ||

@@ -4,7 +4,9 @@ const { Client } = require('pg');
 const fs = require('fs');
 
 (async () => {
-  const url = process.env.DATABASE_URL;
+  // Selección de BD por entorno (ver context/database.md): en dev usa DATABASE_URL_DEV (Neon).
+  const isProd = process.env.NODE_ENV === 'production';
+  const url = (!isProd && process.env.DATABASE_URL_DEV) || process.env.DATABASE_URL;
   const client = new Client({
     connectionString: url,
     ssl: url && url.includes('neon.tech') ? { rejectUnauthorized: false } : false,

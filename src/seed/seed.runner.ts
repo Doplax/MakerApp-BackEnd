@@ -4,6 +4,7 @@ import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { SeedModule } from './seed.module.js';
 import { SeedService } from './seed.service.js';
+import { resolveDatabaseUrl, resolveDatabaseSsl } from '../database/db-config.js';
 import { User } from '../users/entities/user.entity.js';
 import { Filament } from '../filaments/entities/filament.entity.js';
 import { Printer } from '../printers/entities/printer.entity.js';
@@ -25,7 +26,7 @@ import { Message } from '../chat/entities/message.entity.js';
     TypeOrmModule.forRootAsync({
       useFactory: () => ({
         type: 'postgres',
-        url: process.env.DATABASE_URL,
+        url: resolveDatabaseUrl(),
         host: process.env.DB_HOST || 'localhost',
         port: parseInt(process.env.DB_PORT || '5432', 10),
         username: process.env.DB_USERNAME || 'maker_user',
@@ -48,12 +49,8 @@ import { Message } from '../chat/entities/message.entity.js';
           Message,
         ],
         synchronize: true,
-        // SSL condicional: activo solo si DB_SSL=true o la URL pide sslmode=require.
-        ssl:
-          process.env.DB_SSL === 'true' ||
-          process.env.DATABASE_URL?.includes('sslmode=require')
-            ? { rejectUnauthorized: false }
-            : false,
+        // SSL según la URL resuelta (helper). EasyPanel (prod) = sin SSL; Neon (dev) = SSL.
+        ssl: resolveDatabaseSsl(),
       }),
     }),
     SeedModule,
