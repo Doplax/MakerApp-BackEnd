@@ -101,7 +101,14 @@ export class SeedService {
     // Crear usuarios desde seed data
     const savedUsers: User[] = [];
     for (const userData of usersToSeed) {
-      const user = this.userRepository.create(userData);
+      // Normaliza el email a minúsculas igual que el alta real
+      // (UsersService.create / findByEmail lowercasean). Sin esto, las cuentas
+      // del seed con mayúsculas (p. ej. admin@/demo@MakerUp.com) NO podían
+      // loguearse: findByEmail busca en minúsculas y no encontraba la fila.
+      const user = this.userRepository.create({
+        ...userData,
+        email: userData.email.toLowerCase(),
+      });
       savedUsers.push(await this.userRepository.save(user));
     }
 
