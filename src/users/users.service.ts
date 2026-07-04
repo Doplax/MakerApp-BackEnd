@@ -142,14 +142,23 @@ export class UsersService {
     return saved;
   }
 
+  /**
+   * "Borrado" de usuario = SOFT-DELETE (desactivación), NO borrado físico.
+   *
+   * Un DELETE real fallaría por las FK `createdBy` (proyectos/filamentos/impresoras/
+   * print-logs no tienen onDelete) o, si se forzara con CASCADE, dejaría ficheros
+   * huérfanos en el volumen y borraría facturas/compras (registros fiscales). En su
+   * lugar desactivamos la cuenta (`isActive=false`): el login queda bloqueado
+   * (auth.service comprueba `isActive`) y se conservan datos, ficheros y facturas.
+   * Es reversible reactivando `isActive` desde el panel de admin (PATCH /users/:id).
+   */
   async remove(id: string): Promise<{ message: string }> {
-    const user = await this.findOne(id);
-    const { avatarUrl, invoiceLogoUrl } = user;
-    await this.userRepository.remove(user);
-    // Borramos del almacenamiento el avatar y el logo del usuario eliminado
-    if (avatarUrl) await this.cloudinary.deleteByUrl(avatarUrl);
-    if (invoiceLogoUrl) await this.cloudinary.deleteByUrl(invoiceLogoUrl);
-    return { message: `User ${user.email} has been removed` };
+    const user = await this.findOne(id); // lanza NotFound si no existe
+    if (user.isActive) {
+      await this.userRepository.update(id, { isActive: false });
+      this.logger.log(`User deactivated (soft-delete): ${user.email}`);
+    }
+    return { message: `User ${user.email} has been deactivated` };
   }
 
   async updateProfile(id: string, dto: UpdateProfileDto): Promise<User> {

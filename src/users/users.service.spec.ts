@@ -80,6 +80,24 @@ describe('UsersService', () => {
     });
   });
 
+  describe('remove — soft-delete (desactiva, no borra la fila)', () => {
+    it('desactiva al usuario sin borrar la fila ni tocar ficheros', async () => {
+      userRepo.findOne.mockResolvedValue({ id: 'u1', email: 'a@b.c', isActive: true });
+      const res = await service.remove('u1');
+      expect(userRepo.update).toHaveBeenCalledWith('u1', { isActive: false });
+      expect(userRepo.remove).not.toHaveBeenCalled();
+      expect(cloudinary.deleteByUrl).not.toHaveBeenCalled();
+      expect(res.message).toMatch(/deactivat/i);
+    });
+
+    it('es idempotente si el usuario ya estaba desactivado', async () => {
+      userRepo.findOne.mockResolvedValue({ id: 'u1', email: 'a@b.c', isActive: false });
+      await service.remove('u1');
+      expect(userRepo.update).not.toHaveBeenCalled();
+      expect(userRepo.remove).not.toHaveBeenCalled();
+    });
+  });
+
   describe('changePassword', () => {
     it('rechaza si la contraseña actual es incorrecta', async () => {
       userRepo.findOne.mockResolvedValue({
