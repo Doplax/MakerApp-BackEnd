@@ -34,6 +34,7 @@ describe('ChatService', () => {
     createQueryBuilder: jest.Mock;
   };
   let userRepo: { findOne: jest.Mock };
+  let projectRepo: { findOne: jest.Mock };
   let gateway: { emitMessage: jest.Mock; emitRead: jest.Mock };
   let service: ChatService;
 
@@ -84,6 +85,7 @@ describe('ChatService', () => {
       createQueryBuilder: jest.fn(),
     };
     userRepo = { findOne: jest.fn() };
+    projectRepo = { findOne: jest.fn() };
     gateway = { emitMessage: jest.fn(), emitRead: jest.fn() };
 
     service = new ChatService(
@@ -91,6 +93,7 @@ describe('ChatService', () => {
       participantRepo as never,
       messageRepo as never,
       userRepo as never,
+      projectRepo as never,
       gateway as never,
     );
   });
@@ -265,6 +268,100 @@ describe('ChatService', () => {
         service.sendMessage(sender, 'nope', 'hola'),
       ).rejects.toBeInstanceOf(NotFoundException);
       expect(messageRepo.save).not.toHaveBeenCalled();
+    });
+
+    it('sin adjunto: persiste y devuelve attachment null', async () => {
+      conversationRepo.findOne.mockResolvedValue(conv());
+      const view = await service.sendMessage(sender, 'c1', 'hola');
+      expect(view.attachment).toBeNull();
+      expect(projectRepo.findOne).not.toHaveBeenCalled();
+    });
+  });
+
+  // ── sendMessage: adjunto de proyecto (snapshot DERIVADO en servidor) ────
+  describe('sendMessage con adjunto de proyecto', () => {
+    const sender = makeUser({ id: 'a', fullName: 'Alice' });
+    const conv = (): Conversation =>
+      ({
+        id: 'c1',
+        participants: [{ user: sender }, { user: makeUser({ id: 'b' }) }],
+        lastMessageAt: null,
+        updatedAt: new Date(),
+      }) as unknown as Conversation;
+
+    /** Proyecto público con maker 'b'; el precio llega como string (decimal pg). */
+    const publicProject = (over: Record<string, unknown> = {}) => ({
+      id: 'p1',
+      name: 'Pomo de palanca',
+      imageUrl: 'https://cdn/uploads/projects/p1.png',
+      price: '14.50',
+      isPublic: true,
+      createdBy: { id: 'b' },
+      ...over,
+    });
+
+    it('DERIVA el snapshot del proyecto real (ignora datos del cliente) y lo persiste', async () => {
+      conversationRepo.findOne.mockResolvedValue(conv());
+      projectRepo.findOne.mockResolvedValue(publicProject());
+
+      const view = await service.sendMessage(sender, 'c1', 'hola', {
+        type: 'project',
+        projectId: 'p1',
+      });
+
+      expect(projectRepo.findOne).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { id: 'p1' } }),
+      );
+      // El snapshot se construye desde la BD: nombre/imagen/maker + precio numérico.
+      expect(view.attachment).toEqual({
+        type: 'project',
+        projectId: 'p1',
+        makerId: 'b',
+        name: 'Pomo de palanca',
+        imageUrl: 'https://cdn/uploads/projects/p1.png',
+        price: 14.5,
+      });
+      // Se persiste con el adjunto y se notifica al otro con el mensaje (con adjunto).
+      expect(messageRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          attachment: expect.objectContaining({ projectId: 'p1', makerId: 'b' }),
+        }),
+      );
+      expect(gateway.emitMessage).toHaveBeenCalledWith(
+        'b',
+        expect.objectContaining({
+          message: expect.objectContaining({
+            attachment: expect.objectContaining({ projectId: 'p1' }),
+          }),
+        }),
+      );
+    });
+
+    it('NO adjunta un proyecto privado (attachment null, pero el mensaje se envía)', async () => {
+      conversationRepo.findOne.mockResolvedValue(conv());
+      projectRepo.findOne.mockResolvedValue(publicProject({ isPublic: false }));
+
+      const view = await service.sendMessage(sender, 'c1', 'hola', {
+        type: 'project',
+        projectId: 'p1',
+      });
+
+      expect(view.attachment).toBeNull();
+      expect(messageRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({ attachment: null, body: 'hola' }),
+      );
+    });
+
+    it('NO adjunta un proyecto inexistente (attachment null)', async () => {
+      conversationRepo.findOne.mockResolvedValue(conv());
+      projectRepo.findOne.mockResolvedValue(null);
+
+      const view = await service.sendMessage(sender, 'c1', 'hola', {
+        type: 'project',
+        projectId: 'ghost',
+      });
+
+      expect(view.attachment).toBeNull();
     });
   });
 });

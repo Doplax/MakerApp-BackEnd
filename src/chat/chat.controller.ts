@@ -60,7 +60,7 @@ export class ChatController {
     @Body() dto: SendMessageDto,
     @CurrentUser() user: User,
   ) {
-    return this.chatService.sendMessage(user, id, dto.body);
+    return this.chatService.sendMessage(user, id, dto.body, dto.attachment);
   }
 
   @Post('conversations/:id/read')

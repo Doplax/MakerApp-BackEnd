@@ -8,9 +8,16 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { LessThan, Repository } from 'typeorm';
 import { Conversation } from './entities/conversation.entity.js';
 import { ConversationParticipant } from './entities/conversation-participant.entity.js';
-import { Message } from './entities/message.entity.js';
+import { Message, MessageAttachment } from './entities/message.entity.js';
 import { User } from '../users/entities/user.entity.js';
+import { Project } from '../projects/entities/project.entity.js';
 import { ChatGateway } from './chat.gateway.js';
+
+/** Referencia (mínima) que el cliente adjunta; el snapshot se deriva en servidor. */
+export interface AttachmentRef {
+  type: 'project';
+  projectId: string;
+}
 
 export interface ConversationSummary {
   id: string;
@@ -40,6 +47,7 @@ export interface MessageView {
     fullName: string;
     avatarUrl: string | null;
   };
+  attachment: MessageAttachment | null;
 }
 
 @Injectable()
@@ -53,6 +61,8 @@ export class ChatService {
     private readonly messageRepo: Repository<Message>,
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
+    @InjectRepository(Project)
+    private readonly projectRepo: Repository<Project>,
     private readonly gateway: ChatGateway,
   ) {}
 
@@ -67,6 +77,31 @@ export class ChatService {
         fullName: m.sender.fullName,
         avatarUrl: m.sender.avatarUrl ?? null,
       },
+      attachment: m.attachment ?? null,
+    };
+  }
+
+  /**
+   * Construye el snapshot del adjunto DERIVÁNDOLO del proyecto real (nunca del
+   * cliente). Solo se adjuntan proyectos **públicos**; si no existe o no es
+   * público, se devuelve `null` (el mensaje se envía sin adjunto, no falla).
+   */
+  private async resolveAttachment(
+    ref: AttachmentRef | undefined,
+  ): Promise<MessageAttachment | null> {
+    if (ref?.type !== 'project' || !ref.projectId) return null;
+    const project = await this.projectRepo.findOne({
+      where: { id: ref.projectId },
+      relations: ['createdBy'],
+    });
+    if (!project || !project.isPublic || !project.createdBy) return null;
+    return {
+      type: 'project',
+      projectId: project.id,
+      makerId: project.createdBy.id,
+      name: project.name,
+      imageUrl: project.imageUrl ?? null,
+      price: project.price != null ? Number(project.price) : null,
     };
   }
 
@@ -268,6 +303,7 @@ export class ChatService {
     currentUser: User,
     conversationId: string,
     body: string,
+    attachmentRef?: AttachmentRef,
   ): Promise<MessageView> {
     const c = await this.conversationRepo.findOne({
       where: { id: conversationId },
@@ -284,10 +320,13 @@ export class ChatService {
       throw new BadRequestException('El mensaje no puede estar vacío');
     }
 
+    const attachment = await this.resolveAttachment(attachmentRef);
+
     const message = this.messageRepo.create({
       conversation: c,
       sender: currentUser,
       body: trimmed,
+      attachment,
     });
     const saved = await this.messageRepo.save(message);
 

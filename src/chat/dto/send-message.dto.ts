@@ -1,5 +1,27 @@
-import { Transform } from 'class-transformer';
-import { IsString, MaxLength, MinLength } from 'class-validator';
+import { Transform, Type } from 'class-transformer';
+import {
+  IsIn,
+  IsOptional,
+  IsString,
+  IsUUID,
+  MaxLength,
+  MinLength,
+  ValidateNested,
+} from 'class-validator';
+
+/**
+ * Referencia a un proyecto que el cliente adjunta a un mensaje. SOLO se acepta
+ * el `projectId` (+ discriminador): el resto del snapshot (nombre, imagen,
+ * precio, maker) lo DERIVA el servidor desde el proyecto real, para no confiar
+ * en datos manipulables por el cliente.
+ */
+export class MessageAttachmentDto {
+  @IsIn(['project'])
+  type!: 'project';
+
+  @IsUUID()
+  projectId!: string;
+}
 
 export class SendMessageDto {
   // Recortamos ANTES de validar para que '   ' (solo espacios) no pase el
@@ -12,4 +34,9 @@ export class SendMessageDto {
   @MinLength(1)
   @MaxLength(4000)
   body!: string;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => MessageAttachmentDto)
+  attachment?: MessageAttachmentDto;
 }
