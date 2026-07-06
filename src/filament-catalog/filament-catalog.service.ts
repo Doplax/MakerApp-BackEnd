@@ -157,7 +157,13 @@ export class FilamentCatalogService {
       });
 
       if (existing) {
-        Object.assign(existing, dto);
+        // Solo sobrescribimos campos que VIENEN con valor: una celda vacía del
+        // Excel/Sheet llega como undefined y NO debe borrar el dato existente
+        // (antes Object.assign copiaba undefined y machacaba precio/enlace/imagen).
+        const definedEntries = Object.fromEntries(
+          Object.entries(dto).filter(([, v]) => v !== undefined),
+        );
+        Object.assign(existing, definedEntries);
         await this.catalogRepository.save(existing);
         updated++;
       } else {
