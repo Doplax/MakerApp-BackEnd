@@ -15,6 +15,8 @@ import { UpdateUserDto } from './dto/update-user.dto.js';
 import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard } from '../common/guards/roles.guard.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
+import { CurrentUser } from '../common/decorators/current-user.decorator.js';
+import { User } from './entities/user.entity.js';
 import { UserRole } from '../common/enums/index.js';
 
 @Controller('users')
@@ -47,13 +49,14 @@ export class UsersController {
   update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateUserDto: UpdateUserDto,
+    @CurrentUser() actor: User,
   ) {
-    return this.usersService.update(id, updateUserDto);
+    return this.usersService.update(id, updateUserDto, actor.id);
   }
 
   @Delete(':id')
   @Roles(UserRole.ADMIN)
-  remove(@Param('id', ParseUUIDPipe) id: string) {
-    return this.usersService.remove(id);
+  remove(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() actor: User) {
+    return this.usersService.remove(id, actor.id);
   }
 }

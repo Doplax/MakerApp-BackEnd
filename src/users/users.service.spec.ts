@@ -5,6 +5,7 @@ function repoMock() {
   return {
     find: jest.fn(),
     findOne: jest.fn(),
+    count: jest.fn(async () => 1),
     create: jest.fn((x: unknown) => x),
     save: jest.fn(async (x: unknown) => x),
     update: jest.fn(async () => undefined),
@@ -83,7 +84,7 @@ describe('UsersService', () => {
   describe('remove — soft-delete (desactiva, no borra la fila)', () => {
     it('desactiva al usuario sin borrar la fila ni tocar ficheros', async () => {
       userRepo.findOne.mockResolvedValue({ id: 'u1', email: 'a@b.c', isActive: true });
-      const res = await service.remove('u1');
+      const res = await service.remove('u1', 'admin');
       expect(userRepo.update).toHaveBeenCalledWith('u1', { isActive: false });
       expect(userRepo.remove).not.toHaveBeenCalled();
       expect(cloudinary.deleteByUrl).not.toHaveBeenCalled();
@@ -92,7 +93,7 @@ describe('UsersService', () => {
 
     it('es idempotente si el usuario ya estaba desactivado', async () => {
       userRepo.findOne.mockResolvedValue({ id: 'u1', email: 'a@b.c', isActive: false });
-      await service.remove('u1');
+      await service.remove('u1', 'admin');
       expect(userRepo.update).not.toHaveBeenCalled();
       expect(userRepo.remove).not.toHaveBeenCalled();
     });
@@ -124,6 +125,72 @@ describe('UsersService', () => {
       } as never);
       expect(userRepo.save).toHaveBeenCalled();
       expect(res.message).toBeDefined();
+    });
+  });
+
+  describe('update / remove — guardas anti-lockout de admin', () => {
+    const admin = (over: Record<string, unknown> = {}) => ({
+      id: 'admin1',
+      email: 'admin@x.com',
+      role: 'admin',
+      isActive: true,
+      avatarUrl: null,
+      ...over,
+    });
+
+    it('update: un admin NO puede desactivarse a sí mismo', async () => {
+      userRepo.findOne.mockResolvedValue(admin());
+      await expect(
+        service.update('admin1', { isActive: false } as never, 'admin1'),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(userRepo.save).not.toHaveBeenCalled();
+    });
+
+    it('update: un admin NO puede quitarse a sí mismo el rol de administrador', async () => {
+      userRepo.findOne.mockResolvedValue(admin());
+      await expect(
+        service.update('admin1', { role: 'user' } as never, 'admin1'),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+
+    it('update: NO se puede desactivar al último admin activo (aunque lo haga otro admin)', async () => {
+      userRepo.findOne.mockResolvedValue(admin({ id: 'target' }));
+      userRepo.count.mockResolvedValue(0); // no quedan otros admins activos
+      await expect(
+        service.update('target', { isActive: false } as never, 'admin1'),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+
+    it('update: desactivar a un admin SÍ se permite si queda otro admin activo', async () => {
+      userRepo.findOne.mockResolvedValue(admin({ id: 'target' }));
+      userRepo.count.mockResolvedValue(1);
+      await service.update('target', { isActive: false } as never, 'admin1');
+      expect(userRepo.save).toHaveBeenCalled();
+    });
+
+    it('update: email duplicado → BadRequest (400), no 500', async () => {
+      userRepo.findOne
+        .mockResolvedValueOnce(admin({ id: 'target', email: 'target@x.com' }))
+        .mockResolvedValueOnce({ id: 'OTHER', email: 'taken@x.com' });
+      await expect(
+        service.update('target', { email: 'Taken@x.com' } as never, 'admin1'),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+
+    it('remove: un admin NO puede desactivarse a sí mismo', async () => {
+      userRepo.findOne.mockResolvedValue(admin());
+      await expect(service.remove('admin1', 'admin1')).rejects.toBeInstanceOf(
+        BadRequestException,
+      );
+      expect(userRepo.update).not.toHaveBeenCalled();
+    });
+
+    it('remove: NO se puede desactivar al último admin activo', async () => {
+      userRepo.findOne.mockResolvedValue(admin({ id: 'target' }));
+      userRepo.count.mockResolvedValue(0);
+      await expect(service.remove('target', 'admin1')).rejects.toBeInstanceOf(
+        BadRequestException,
+      );
     });
   });
 });

@@ -160,11 +160,18 @@ export class FilamentCatalogService {
         // Solo sobrescribimos campos que VIENEN con valor: una celda vacía del
         // Excel/Sheet llega como undefined y NO debe borrar el dato existente
         // (antes Object.assign copiaba undefined y machacaba precio/enlace/imagen).
+        const oldImageUrl = existing.imageUrl;
         const definedEntries = Object.fromEntries(
           Object.entries(dto).filter(([, v]) => v !== undefined),
         );
         Object.assign(existing, definedEntries);
-        await this.catalogRepository.save(existing);
+        const saved = await this.catalogRepository.save(existing);
+        // Contrato de limpieza (igual que update()): si el import reemplaza una
+        // imagen que vivía en /uploads, borra la vieja del volumen para no dejar
+        // huérfanos. deleteByUrl ignora estáticos del front y URLs externas.
+        if (oldImageUrl && oldImageUrl !== saved.imageUrl) {
+          await this.cloudinary.deleteByUrl(oldImageUrl);
+        }
         updated++;
       } else {
         const entity = this.catalogRepository.create(dto);

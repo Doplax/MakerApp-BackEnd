@@ -87,12 +87,21 @@ describe('InvoicesService', () => {
   });
 
   it('es idempotente: si la compra ya tiene factura, la devuelve sin transacción', async () => {
-    const existing = { id: 'inv1', number: '2026-0001' };
+    const existing = { id: 'inv1', number: '2026-0001', maker: { id: 'maker1' } };
     const { service, manager, dataSource } = setup({ pre: existing, purchase: succeededPurchase, maker });
     const inv = await service.issueForPurchase('pur1', 'maker1');
     expect(inv).toBe(existing);
     expect(dataSource.transaction).not.toHaveBeenCalled();
     expect(manager.create).not.toHaveBeenCalled();
+  });
+
+  it('IDOR: NO devuelve una factura existente a quien no es su maker (fast-path autorizado)', async () => {
+    const existing = { id: 'inv1', number: '2026-0001', maker: { id: 'maker1' } };
+    const { service, dataSource } = setup({ pre: existing, purchase: succeededPurchase, maker });
+    await expect(service.issueForPurchase('pur1', 'ATACANTE')).rejects.toBeInstanceOf(
+      ForbiddenException,
+    );
+    expect(dataSource.transaction).not.toHaveBeenCalled();
   });
 
   it('rechaza facturar una venta que no es del maker (autorización)', async () => {

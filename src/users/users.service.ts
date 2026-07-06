@@ -8,7 +8,7 @@ import {
   forwardRef,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Not, Repository } from 'typeorm';
 import { CreateUserDto } from './dto/create-user.dto.js';
 import { UpdateUserDto } from './dto/update-user.dto.js';
 import { UpdateProfileDto } from './dto/update-profile.dto.js';
@@ -16,7 +16,7 @@ import { ChangePasswordDto } from './dto/change-password.dto.js';
 import { User } from './entities/user.entity.js';
 import { Filament } from '../filaments/entities/filament.entity.js';
 import { PrintLog } from '../print-logs/entities/print-log.entity.js';
-import { PrintStatus } from '../common/enums/index.js';
+import { PrintStatus, UserRole } from '../common/enums/index.js';
 import { MakerReviewsService } from '../maker-reviews/maker-reviews.service.js';
 import { CloudinaryService } from '../cloudinary/cloudinary.service.js';
 
@@ -126,12 +126,57 @@ export class UsersService {
     return saved;
   }
 
-  async update(id: string, updateUserDto: UpdateUserDto): Promise<User> {
+  /**
+   * Edición ADMINISTRATIVA de un usuario. `actorId` = id del admin que hace la
+   * petición, para las guardas anti-lockout (no puede autoexpulsarse ni dejar la
+   * plataforma sin ningún administrador activo).
+   */
+  async update(
+    id: string,
+    updateUserDto: UpdateUserDto,
+    actorId: string,
+  ): Promise<User> {
     const user = await this.findOne(id);
     const oldAvatarUrl = user.avatarUrl;
 
     if (updateUserDto.email) {
-      updateUserDto.email = updateUserDto.email.toLowerCase();
+      const email = updateUserDto.email.toLowerCase();
+      updateUserDto.email = email;
+      // Unicidad: sin este check un email duplicado revienta con 500 (violación
+      // de la constraint UNIQUE) en vez de un 400 con mensaje útil.
+      if (email !== user.email) {
+        const clash = await this.userRepository.findOne({ where: { email } });
+        if (clash && clash.id !== id) {
+          throw new BadRequestException(
+            `Ya existe un usuario con el email ${updateUserDto.email}`,
+          );
+        }
+      }
+    }
+
+    // No puedes desactivarte ni quitarte a ti mismo el rol de admin: la estrategia
+    // JWT rechaza inactivos/no-admin en la siguiente petición → autoexpulsión.
+    if (id === actorId) {
+      if (updateUserDto.isActive === false) {
+        throw new BadRequestException('No puedes desactivar tu propia cuenta');
+      }
+      if (
+        updateUserDto.role !== undefined &&
+        updateUserDto.role !== UserRole.ADMIN
+      ) {
+        throw new BadRequestException(
+          'No puedes quitarte a ti mismo el rol de administrador',
+        );
+      }
+    }
+
+    // Debe quedar SIEMPRE al menos un administrador activo: si este cambio deja a
+    // un admin activo sin serlo (desactivación o cambio de rol), verifica que hay otro.
+    const willBeActive = updateUserDto.isActive ?? user.isActive;
+    const willBeAdmin = (updateUserDto.role ?? user.role) === UserRole.ADMIN;
+    const wasActiveAdmin = user.isActive && user.role === UserRole.ADMIN;
+    if (wasActiveAdmin && !(willBeActive && willBeAdmin)) {
+      await this.assertNotLastActiveAdmin(id);
     }
 
     Object.assign(user, updateUserDto);
@@ -140,6 +185,18 @@ export class UsersService {
       await this.cloudinary.deleteByUrl(oldAvatarUrl);
     }
     return saved;
+  }
+
+  /** Lanza si `id` es el ÚNICO administrador activo que quedaría. */
+  private async assertNotLastActiveAdmin(id: string): Promise<void> {
+    const otherActiveAdmins = await this.userRepository.count({
+      where: { role: UserRole.ADMIN, isActive: true, id: Not(id) },
+    });
+    if (otherActiveAdmins === 0) {
+      throw new BadRequestException(
+        'Debe quedar al menos un administrador activo en la plataforma',
+      );
+    }
   }
 
   /**
@@ -152,8 +209,16 @@ export class UsersService {
    * (auth.service comprueba `isActive`) y se conservan datos, ficheros y facturas.
    * Es reversible reactivando `isActive` desde el panel de admin (PATCH /users/:id).
    */
-  async remove(id: string): Promise<{ message: string }> {
+  async remove(id: string, actorId: string): Promise<{ message: string }> {
     const user = await this.findOne(id); // lanza NotFound si no existe
+    // Un admin no puede desactivarse a sí mismo (autoexpulsión) ni dejar la
+    // plataforma sin ningún administrador activo.
+    if (id === actorId) {
+      throw new BadRequestException('No puedes desactivar tu propia cuenta');
+    }
+    if (user.isActive && user.role === UserRole.ADMIN) {
+      await this.assertNotLastActiveAdmin(id);
+    }
     if (user.isActive) {
       await this.userRepository.update(id, { isActive: false });
       this.logger.log(`User deactivated (soft-delete): ${user.email}`);

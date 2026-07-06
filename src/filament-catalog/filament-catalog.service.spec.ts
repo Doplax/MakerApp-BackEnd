@@ -29,7 +29,7 @@ function makeService(existingRows: Partial<FilamentCatalog>[] = []) {
   };
   const cloudinary = { deleteByUrl: jest.fn() };
   const service = new FilamentCatalogService(repo as never, cloudinary as never);
-  return { service, repo, saved };
+  return { service, repo, saved, cloudinary };
 }
 
 describe('FilamentCatalogService.bulkUpsert', () => {
@@ -79,5 +79,44 @@ describe('FilamentCatalogService.bulkUpsert', () => {
       purchaseUrl: 'https://tienda.example.com/rojo',
       imageUrl: 'images/filaments/samples/eSUN-Red-1.jpg',
     });
+  });
+
+  it('al reemplazar imageUrl de una fila existente borra la imagen vieja (contrato de limpieza)', async () => {
+    const existing = {
+      brand: 'eSUN',
+      material: 'PLA',
+      color: 'Rojo',
+      imageUrl: 'https://api.test/uploads/filaments/old.jpg', // vivía en /uploads
+    };
+    const { service, cloudinary } = makeService([existing]);
+
+    await service.bulkUpsert([
+      {
+        brand: 'eSUN',
+        material: 'PLA',
+        color: 'Rojo',
+        imageUrl: 'images/filaments/samples/eSUN-Red-1.jpg', // nueva imagen
+      },
+    ] as never);
+
+    expect(cloudinary.deleteByUrl).toHaveBeenCalledWith(
+      'https://api.test/uploads/filaments/old.jpg',
+    );
+  });
+
+  it('si imageUrl no cambia, NO borra nada', async () => {
+    const existing = {
+      brand: 'eSUN',
+      material: 'PLA',
+      color: 'Rojo',
+      imageUrl: 'https://api.test/uploads/filaments/keep.jpg',
+    };
+    const { service, cloudinary } = makeService([existing]);
+
+    await service.bulkUpsert([
+      { brand: 'eSUN', material: 'PLA', color: 'Rojo', referencePrice: 9.99 },
+    ] as never);
+
+    expect(cloudinary.deleteByUrl).not.toHaveBeenCalled();
   });
 });

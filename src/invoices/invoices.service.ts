@@ -33,7 +33,15 @@ export class InvoicesService {
       where: { purchase: { id: purchaseId } },
       relations: ['maker', 'buyer', 'project', 'purchase'],
     });
-    if (pre) return pre;
+    if (pre) {
+      // Autorización TAMBIÉN en el fast-path: si no, cualquier usuario logueado
+      // podría recuperar una factura ajena (con datos fiscales) por su purchaseId
+      // (el check de propiedad de abajo solo se alcanza al CREAR la factura).
+      if (pre.maker?.id !== makerId) {
+        throw new ForbiddenException('No puedes facturar una venta que no es tuya');
+      }
+      return pre;
+    }
 
     return this.dataSource.transaction(async (m) => {
       // Serializa por COMPRA: bloqueamos la fila de la compra (sin joins, para
@@ -46,12 +54,18 @@ export class InvoicesService {
       });
       if (!locked) throw new NotFoundException('Compra no encontrada');
 
-      // Re-chequea idempotencia dentro del lock.
+      // Re-chequea idempotencia dentro del lock (por si otra petición creó la
+      // factura entre el fast-path y la transacción), con la misma autorización.
       const existing = await m.findOne(Invoice, {
         where: { purchase: { id: purchaseId } },
         relations: ['maker', 'buyer', 'project', 'purchase'],
       });
-      if (existing) return existing;
+      if (existing) {
+        if (existing.maker?.id !== makerId) {
+          throw new ForbiddenException('No puedes facturar una venta que no es tuya');
+        }
+        return existing;
+      }
 
       const purchase = await m.findOne(Purchase, {
         where: { id: purchaseId },
