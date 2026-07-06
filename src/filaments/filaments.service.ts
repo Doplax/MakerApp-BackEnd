@@ -14,6 +14,7 @@ import { FilamentCatalog } from '../filament-catalog/entities/filament-catalog.e
 import { User } from '../users/entities/user.entity.js';
 import { FilamentStatus } from '../common/enums/index.js';
 import { CloudinaryService } from '../cloudinary/cloudinary.service.js';
+import { BrandsService } from '../brands/brands.service.js';
 
 @Injectable()
 export class FilamentsService {
@@ -25,6 +26,7 @@ export class FilamentsService {
     @InjectRepository(FilamentCatalog)
     private readonly catalogRepository: Repository<FilamentCatalog>,
     private readonly cloudinary: CloudinaryService,
+    private readonly brands: BrandsService,
   ) {}
 
   async create(
@@ -71,8 +73,16 @@ export class FilamentsService {
       };
     }
 
+    // Enlaza la marca (entidad Brand) por su nombre: crea/encuentra la marca y
+    // rellena brandId, para que el inventario del usuario también cuente en las
+    // marcas. Aditivo: si no hay nombre de marca, queda null.
+    const brandId = filamentData.brand
+      ? await this.brands.resolveIdForName(filamentData.brand)
+      : null;
+
     const filament = this.filamentRepository.create({
       ...filamentData,
+      brandId: brandId ?? undefined,
       remainingWeight:
         createFilamentDto.remainingWeight ??
         filamentData.totalWeight ??

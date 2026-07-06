@@ -5,11 +5,13 @@ import { FilamentsController } from './filaments.controller.js';
 import { Filament } from './entities/filament.entity.js';
 import { FilamentCatalog } from '../filament-catalog/entities/filament-catalog.entity.js';
 import { CloudinaryModule } from '../cloudinary/cloudinary.module.js';
+import { BrandsModule } from '../brands/brands.module.js';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Filament, FilamentCatalog]),
     CloudinaryModule,
+    BrandsModule,
   ],
   controllers: [FilamentsController],
   providers: [FilamentsService],

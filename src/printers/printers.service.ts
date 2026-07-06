@@ -6,6 +6,7 @@ import { UpdatePrinterDto } from './dto/update-printer.dto.js';
 import { Printer } from './entities/printer.entity.js';
 import { User } from '../users/entities/user.entity.js';
 import { CloudinaryService } from '../cloudinary/cloudinary.service.js';
+import { BrandsService } from '../brands/brands.service.js';
 
 export interface MaintenanceDueItem {
   printerId: string;
@@ -30,14 +31,22 @@ export class PrintersService {
     @InjectRepository(Printer)
     private readonly printerRepository: Repository<Printer>,
     private readonly cloudinary: CloudinaryService,
+    private readonly brands: BrandsService,
   ) {}
 
   async create(
     createPrinterDto: CreatePrinterDto,
     user: User,
   ): Promise<Printer> {
+    // Enlaza la marca (entidad Brand) por su nombre: crea/encuentra y rellena
+    // brandId para que la impresora cuente en las marcas. Aditivo.
+    const brandId = createPrinterDto.brand
+      ? await this.brands.resolveIdForName(createPrinterDto.brand)
+      : null;
+
     const printer = this.printerRepository.create({
       ...createPrinterDto,
+      brandId: brandId ?? undefined,
       createdBy: user,
     });
     const saved = await this.printerRepository.save(printer);
