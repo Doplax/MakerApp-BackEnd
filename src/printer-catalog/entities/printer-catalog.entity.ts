@@ -4,7 +4,10 @@ import {
   PrimaryGeneratedColumn,
   CreateDateColumn,
   UpdateDateColumn,
+  ManyToOne,
+  JoinColumn,
 } from 'typeorm';
+import { Brand } from '../../brands/entities/brand.entity.js';
 
 @Entity('printer_catalog')
 export class PrinterCatalog {
@@ -13,6 +16,14 @@ export class PrinterCatalog {
 
   @Column({ length: 100 })
   brand!: string;
+
+  // Marca estructurada (opcional). Ver Brand/AddBrands.
+  @Column({ type: 'uuid', nullable: true })
+  brandId?: string | null;
+
+  @ManyToOne(() => Brand, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'brandId' })
+  brandRef?: Brand | null;
 
   @Column({ length: 100 })
   model!: string;

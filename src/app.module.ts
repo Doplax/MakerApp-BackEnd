@@ -20,6 +20,7 @@ import { FollowsModule } from './follows/follows.module.js';
 import { FavoritesModule } from './favorites/favorites.module.js';
 import { FilamentCatalogModule } from './filament-catalog/filament-catalog.module.js';
 import { PrinterCatalogModule } from './printer-catalog/printer-catalog.module.js';
+import { BrandsModule } from './brands/brands.module.js';
 import { ReviewsModule } from './reviews/reviews.module.js';
 import { StripeModule } from './stripe/stripe.module.js';
 import { PurchasesModule } from './purchases/purchases.module.js';
@@ -74,6 +75,7 @@ import { ExchangeRatesModule } from './exchange-rates/exchange-rates.module.js';
     FavoritesModule,
     FilamentCatalogModule,
     PrinterCatalogModule,
+    BrandsModule,
     ReviewsModule,
     StripeModule,
     PurchasesModule,

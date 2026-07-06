@@ -7,9 +7,11 @@ import {
   ManyToOne,
   OneToMany,
   ManyToMany,
+  JoinColumn,
 } from 'typeorm';
 import { MaterialType, FilamentStatus } from '../../common/enums/index.js';
 import { User } from '../../users/entities/user.entity.js';
+import { Brand } from '../../brands/entities/brand.entity.js';
 import { PrintLog } from '../../print-logs/entities/print-log.entity.js';
 import { FilamentCatalog } from '../../filament-catalog/entities/filament-catalog.entity.js';
 import { Project } from '../../projects/entities/project.entity.js';
@@ -21,6 +23,14 @@ export class Filament {
 
   @Column({ length: 100 })
   brand!: string;
+
+  // Marca estructurada (opcional). Ver Brand/AddBrands.
+  @Column({ type: 'uuid', nullable: true })
+  brandId?: string | null;
+
+  @ManyToOne(() => Brand, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'brandId' })
+  brandRef?: Brand | null;
 
   @Column({ type: 'enum', enum: MaterialType, default: MaterialType.PLA })
   material!: MaterialType;

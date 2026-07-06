@@ -28,8 +28,13 @@ function makeService(existingRows: Partial<FilamentCatalog>[] = []) {
     }),
   };
   const cloudinary = { deleteByUrl: jest.fn() };
-  const service = new FilamentCatalogService(repo as never, cloudinary as never);
-  return { service, repo, saved, cloudinary };
+  const brands = { resolveIdForName: jest.fn().mockResolvedValue(null) };
+  const service = new FilamentCatalogService(
+    repo as never,
+    cloudinary as never,
+    brands as never,
+  );
+  return { service, repo, saved, cloudinary, brands };
 }
 
 describe('FilamentCatalogService.bulkUpsert', () => {

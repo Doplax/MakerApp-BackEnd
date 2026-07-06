@@ -13,12 +13,20 @@ describe('PrinterCatalogService', () => {
     remove: jest.fn().mockResolvedValue(undefined),
   });
 
-  const buildService = (repo = buildRepo(), cloudinary = { deleteByUrl: jest.fn() }) =>
-    ({
-      service: new PrinterCatalogService(repo as never, cloudinary as never),
-      repo,
-      cloudinary,
-    });
+  const buildService = (
+    repo = buildRepo(),
+    cloudinary = { deleteByUrl: jest.fn() },
+    brands = { resolveIdForName: jest.fn().mockResolvedValue(null) },
+  ) => ({
+    service: new PrinterCatalogService(
+      repo as never,
+      cloudinary as never,
+      brands as never,
+    ),
+    repo,
+    cloudinary,
+    brands,
+  });
 
   it('findOne lanza NotFoundException si el id no existe', async () => {
     const { service, repo } = buildService();

@@ -6,8 +6,10 @@ import {
   UpdateDateColumn,
   ManyToOne,
   OneToMany,
+  JoinColumn,
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity.js';
+import { Brand } from '../../brands/entities/brand.entity.js';
 import { PrintLog } from '../../print-logs/entities/print-log.entity.js';
 
 @Entity('printers')
@@ -20,6 +22,14 @@ export class Printer {
 
   @Column({ length: 100 })
   brand!: string;
+
+  // Marca estructurada (opcional). Ver Brand/AddBrands.
+  @Column({ type: 'uuid', nullable: true })
+  brandId?: string | null;
+
+  @ManyToOne(() => Brand, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'brandId' })
+  brandRef?: Brand | null;
 
   @Column({ length: 100 })
   model!: string;

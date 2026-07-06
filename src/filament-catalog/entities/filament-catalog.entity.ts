@@ -4,8 +4,11 @@ import {
   PrimaryGeneratedColumn,
   CreateDateColumn,
   UpdateDateColumn,
+  ManyToOne,
+  JoinColumn,
 } from 'typeorm';
 import { MaterialType } from '../../common/enums/index.js';
+import { Brand } from '../../brands/entities/brand.entity.js';
 
 @Entity('filament_catalog')
 export class FilamentCatalog {
@@ -14,6 +17,16 @@ export class FilamentCatalog {
 
   @Column({ length: 100 })
   brand!: string;
+
+  // Marca estructurada (opcional). `brand` (arriba) sigue siendo el display;
+  // `brandId` permite filtrar/agrupar por marca. La rellena la migración AddBrands
+  // y BrandsService.resolveIdForName en escritura.
+  @Column({ type: 'uuid', nullable: true })
+  brandId?: string | null;
+
+  @ManyToOne(() => Brand, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'brandId' })
+  brandRef?: Brand | null;
 
   @Column({ type: 'enum', enum: MaterialType, default: MaterialType.PLA })
   material!: MaterialType;

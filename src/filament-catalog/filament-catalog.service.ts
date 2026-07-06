@@ -6,6 +6,7 @@ import { CreateFilamentCatalogDto } from './dto/create-filament-catalog.dto.js';
 import { UpdateFilamentCatalogDto } from './dto/update-filament-catalog.dto.js';
 import { FilterFilamentCatalogDto } from './dto/filter-filament-catalog.dto.js';
 import { CloudinaryService } from '../cloudinary/cloudinary.service.js';
+import { BrandsService } from '../brands/brands.service.js';
 
 @Injectable()
 export class FilamentCatalogService {
@@ -15,10 +16,12 @@ export class FilamentCatalogService {
     @InjectRepository(FilamentCatalog)
     private readonly catalogRepository: Repository<FilamentCatalog>,
     private readonly cloudinary: CloudinaryService,
+    private readonly brands: BrandsService,
   ) {}
 
   async create(dto: CreateFilamentCatalogDto): Promise<FilamentCatalog> {
     const catalog = this.catalogRepository.create(dto);
+    catalog.brandId = await this.brands.resolveIdForName(dto.brand);
     const saved = await this.catalogRepository.save(catalog);
     this.logger.log(
       `Catalog entry created: ${saved.brand} ${saved.material} ${saved.color}`,
@@ -156,6 +159,8 @@ export class FilamentCatalogService {
         },
       });
 
+      const brandId = await this.brands.resolveIdForName(dto.brand);
+
       if (existing) {
         // Solo sobrescribimos campos que VIENEN con valor: una celda vacía del
         // Excel/Sheet llega como undefined y NO debe borrar el dato existente
@@ -165,6 +170,7 @@ export class FilamentCatalogService {
           Object.entries(dto).filter(([, v]) => v !== undefined),
         );
         Object.assign(existing, definedEntries);
+        if (brandId) existing.brandId = brandId;
         const saved = await this.catalogRepository.save(existing);
         // Contrato de limpieza (igual que update()): si el import reemplaza una
         // imagen que vivía en /uploads, borra la vieja del volumen para no dejar
@@ -175,6 +181,7 @@ export class FilamentCatalogService {
         updated++;
       } else {
         const entity = this.catalogRepository.create(dto);
+        entity.brandId = brandId;
         await this.catalogRepository.save(entity);
         created++;
       }

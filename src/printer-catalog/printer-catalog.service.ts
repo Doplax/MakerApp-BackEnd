@@ -6,6 +6,7 @@ import { CreatePrinterCatalogDto } from './dto/create-printer-catalog.dto.js';
 import { UpdatePrinterCatalogDto } from './dto/update-printer-catalog.dto.js';
 import { FilterPrinterCatalogDto } from './dto/filter-printer-catalog.dto.js';
 import { CloudinaryService } from '../cloudinary/cloudinary.service.js';
+import { BrandsService } from '../brands/brands.service.js';
 
 @Injectable()
 export class PrinterCatalogService {
@@ -15,10 +16,12 @@ export class PrinterCatalogService {
     @InjectRepository(PrinterCatalog)
     private readonly catalogRepository: Repository<PrinterCatalog>,
     private readonly cloudinary: CloudinaryService,
+    private readonly brands: BrandsService,
   ) {}
 
   async create(dto: CreatePrinterCatalogDto): Promise<PrinterCatalog> {
     const catalog = this.catalogRepository.create(dto);
+    catalog.brandId = await this.brands.resolveIdForName(dto.brand);
     const saved = await this.catalogRepository.save(catalog);
     this.logger.log(`Catalog entry created: ${saved.brand} ${saved.model}`);
     return saved;
@@ -69,12 +72,25 @@ export class PrinterCatalogService {
         where: { brand: dto.brand, model: dto.model },
       });
 
+      const brandId = await this.brands.resolveIdForName(dto.brand);
+
       if (existing) {
-        Object.assign(existing, dto);
-        await this.catalogRepository.save(existing);
+        // Ignora undefined (una celda vacía NO machaca lo existente) — paridad con
+        // el bulkUpsert de filament-catalog + limpieza de imagen al reemplazar.
+        const oldImageUrl = existing.imageUrl;
+        const definedEntries = Object.fromEntries(
+          Object.entries(dto).filter(([, v]) => v !== undefined),
+        );
+        Object.assign(existing, definedEntries);
+        if (brandId) existing.brandId = brandId;
+        const saved = await this.catalogRepository.save(existing);
+        if (oldImageUrl && oldImageUrl !== saved.imageUrl) {
+          await this.cloudinary.deleteByUrl(oldImageUrl);
+        }
         updated++;
       } else {
         const entity = this.catalogRepository.create(dto);
+        entity.brandId = brandId;
         await this.catalogRepository.save(entity);
         created++;
       }
