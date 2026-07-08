@@ -94,6 +94,14 @@ export class ProjectsService {
     const cutoff = this.periodCutoff(query.period);
     if (cutoff) qb.andWhere('project.createdAt >= :cutoff', { cutoff });
 
+    const search = query.search?.trim();
+    if (search) {
+      qb.andWhere(
+        '(LOWER(project.name) LIKE LOWER(:search) OR LOWER(project.description) LIKE LOWER(:search))',
+        { search: `%${search}%` },
+      );
+    }
+
     qb.orderBy('project.createdAt', 'DESC');
 
     if (!wantsPagination) {

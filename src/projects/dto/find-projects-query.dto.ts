@@ -1,4 +1,13 @@
-import { IsIn, IsInt, IsOptional, IsPositive, Max, Min } from 'class-validator';
+import {
+  IsIn,
+  IsInt,
+  IsOptional,
+  IsPositive,
+  IsString,
+  Max,
+  MaxLength,
+  Min,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
 /**
@@ -30,4 +39,10 @@ export class FindProjectsQueryDto {
   @IsOptional()
   @IsIn(['all', 'week', 'month'])
   period?: 'all' | 'week' | 'month';
+
+  /** Búsqueda por nombre/descripción (buscador de "Todos los proyectos"). */
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  search?: string;
 }
