@@ -44,6 +44,7 @@ export class StorageSweeperService {
     ['printers', 'imageUrl'],
     ['filament_catalog', 'imageUrl'],
     ['printer_catalog', 'imageUrl'],
+    ['filament_offers', 'imageUrl'],
     ['print_logs', 'imageUrl'],
   ];
 
