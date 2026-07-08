@@ -55,7 +55,9 @@ export class PrintersService {
     });
     const saved = await this.printerRepository.save(printer);
     this.logger.log(`Printer created: ${saved.name} by ${user.email}`);
-    return saved;
+    // Con las horas calculadas (inicial + logs, aquí aún sin logs) para que la
+    // tarjeta recién creada muestre las horas sin tener que recargar la lista.
+    return this.withHours(saved);
   }
 
   async findAll(user: User): Promise<PrinterWithHours[]> {
@@ -93,16 +95,18 @@ export class PrintersService {
   }
 
   private withHours(printer: Printer): PrinterWithHours {
+    // Horas que la impresora ya traía al darla de alta: suman al total y a los
+    // contadores de mantenimiento MIENTRAS no se registre un mantenimiento
+    // (a partir de ahí solo cuentan las horas impresas desde esa fecha).
+    const initial = printer.initialPrintHours ?? 0;
     return Object.assign(printer, {
-      totalPrintHours: this.printHoursSince(printer, null),
-      hoursSinceSimpleMaintenance: this.printHoursSince(
-        printer,
-        printer.lastMaintenanceSimpleAt ?? null,
-      ),
-      hoursSinceFullMaintenance: this.printHoursSince(
-        printer,
-        printer.lastMaintenanceFullAt ?? null,
-      ),
+      totalPrintHours: initial + this.printHoursSince(printer, null),
+      hoursSinceSimpleMaintenance:
+        (printer.lastMaintenanceSimpleAt ? 0 : initial) +
+        this.printHoursSince(printer, printer.lastMaintenanceSimpleAt ?? null),
+      hoursSinceFullMaintenance:
+        (printer.lastMaintenanceFullAt ? 0 : initial) +
+        this.printHoursSince(printer, printer.lastMaintenanceFullAt ?? null),
     });
   }
 
@@ -137,7 +141,11 @@ export class PrintersService {
 
       for (const c of checks) {
         if (!c.threshold || c.threshold <= 0) continue;
-        const hoursSince = this.printHoursSince(printer, c.last);
+        // Mismo criterio que withHours: las horas iniciales cuentan mientras
+        // no haya un mantenimiento registrado.
+        const hoursSince =
+          (c.last ? 0 : (printer.initialPrintHours ?? 0)) +
+          this.printHoursSince(printer, c.last);
         if (hoursSince >= c.threshold) {
           due.push({
             printerId: printer.id,

@@ -55,6 +55,11 @@ export class Printer {
   @Column({ type: 'jsonb', nullable: true })
   nozzleDiameters!: number[] | null;
 
+  // Horas de impresión que la máquina ya traía al darla de alta (segunda mano
+  // o uso previo). Suman al total calculado desde los print-logs.
+  @Column('int', { nullable: true })
+  initialPrintHours!: number | null;
+
   @Column({
     type: 'enum',
     enum: ['idle', 'printing', 'maintenance', 'offline'],

@@ -8,6 +8,7 @@ import {
   IsPositive,
   IsString,
   MaxLength,
+  Min,
 } from 'class-validator';
 
 export class CreatePrinterDto {
@@ -56,6 +57,11 @@ export class CreatePrinterDto {
   @IsPositive({ each: true })
   @IsOptional()
   nozzleDiameters?: number[];
+
+  @IsInt()
+  @Min(0)
+  @IsOptional()
+  initialPrintHours?: number;
 
   @IsString()
   @IsIn(['idle', 'printing', 'maintenance', 'offline'])
