@@ -1,4 +1,5 @@
 import {
+  IsArray,
   IsIn,
   IsInt,
   IsNotEmpty,
@@ -49,6 +50,12 @@ export class CreatePrinterDto {
   @IsPositive()
   @IsOptional()
   nozzleDiameter?: number;
+
+  @IsArray()
+  @IsNumber({}, { each: true })
+  @IsPositive({ each: true })
+  @IsOptional()
+  nozzleDiameters?: number[];
 
   @IsString()
   @IsIn(['idle', 'printing', 'maintenance', 'offline'])

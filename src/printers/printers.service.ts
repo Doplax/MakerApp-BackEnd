@@ -46,6 +46,10 @@ export class PrintersService {
 
     const printer = this.printerRepository.create({
       ...createPrinterDto,
+      // Compat: la boquilla "principal" (legacy) es la primera de la lista.
+      nozzleDiameter:
+        createPrinterDto.nozzleDiameter ??
+        createPrinterDto.nozzleDiameters?.[0],
       brandId: brandId ?? undefined,
       createdBy: user,
     });
@@ -157,6 +161,11 @@ export class PrintersService {
     const printer = await this.findOne(id, user);
     const oldImageUrl = printer.imageUrl;
     Object.assign(printer, updatePrinterDto);
+    // Compat: si llega la lista de boquillas sin boquilla "principal" explícita,
+    // sincroniza el campo legacy con la primera.
+    if (updatePrinterDto.nozzleDiameters && updatePrinterDto.nozzleDiameter === undefined) {
+      printer.nozzleDiameter = updatePrinterDto.nozzleDiameters[0] ?? printer.nozzleDiameter;
+    }
     const saved = await this.printerRepository.save(printer);
     if (oldImageUrl && oldImageUrl !== saved.imageUrl) {
       await this.cloudinary.deleteByUrl(oldImageUrl);

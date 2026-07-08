@@ -46,8 +46,14 @@ export class Printer {
   @Column('int', { nullable: true })
   buildVolumeZ!: number;
 
+  // Boquilla "principal" (legacy). Se mantiene sincronizada con la primera de
+  // `nozzleDiameters` para no romper lecturas existentes.
   @Column('float', { nullable: true })
   nozzleDiameter!: number;
+
+  // Boquillas disponibles (multi-selección en el formulario: 0.2/0.4/0.6/0.8/1).
+  @Column({ type: 'jsonb', nullable: true })
+  nozzleDiameters!: number[] | null;
 
   @Column({
     type: 'enum',
