@@ -72,6 +72,22 @@ export class CreateProjectDto {
   @IsOptional()
   notes?: string;
 
+  // ── Redes del proyecto (reel/publicación del proceso; opcionales) ──
+  @IsString()
+  @IsOptional()
+  @MaxLength(500)
+  instagramUrl?: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(500)
+  tiktokUrl?: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(500)
+  youtubeUrl?: string;
+
   @IsArray()
   @IsUUID('4', { each: true })
   @IsOptional()

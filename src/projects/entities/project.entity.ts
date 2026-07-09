@@ -70,6 +70,17 @@ export class Project {
   @Column({ type: 'text', nullable: true })
   notes!: string;
 
+  // ── Redes sociales del proyecto (reel/publicación del proceso) ──
+  // Opcionales: la ficha pública solo pinta los iconos con enlace.
+  @Column({ type: 'varchar', length: 500, nullable: true })
+  instagramUrl!: string | null;
+
+  @Column({ type: 'varchar', length: 500, nullable: true })
+  tiktokUrl!: string | null;
+
+  @Column({ type: 'varchar', length: 500, nullable: true })
+  youtubeUrl!: string | null;
+
   @Column({ type: 'int', nullable: true, default: 1 })
   pendingCopies!: number | null;
 

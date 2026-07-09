@@ -582,6 +582,10 @@ export class UsersService {
       price: project.price,
       designType: project.designType,
       material: project.filaments?.[0]?.material ?? null,
+      // Redes del proyecto (reel/publicación del proceso; solo se pintan si hay enlace).
+      instagramUrl: project.instagramUrl ?? null,
+      tiktokUrl: project.tiktokUrl ?? null,
+      youtubeUrl: project.youtubeUrl ?? null,
       maker: {
         id: user.id,
         fullName: user.fullName,
