@@ -3,11 +3,12 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { PrintersService } from './printers.service.js';
 import { PrintersController } from './printers.controller.js';
 import { Printer } from './entities/printer.entity.js';
+import { PrinterMaintenance } from './entities/printer-maintenance.entity.js';
 import { CloudinaryModule } from '../cloudinary/cloudinary.module.js';
 import { BrandsModule } from '../brands/brands.module.js';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Printer]), CloudinaryModule, BrandsModule],
+  imports: [TypeOrmModule.forFeature([Printer, PrinterMaintenance]), CloudinaryModule, BrandsModule],
   controllers: [PrintersController],
   providers: [PrintersService],
   exports: [PrintersService],

@@ -8,14 +8,22 @@ describe('PrintersService', () => {
       create: jest.fn((x) => x),
       save: jest.fn((x) => Promise.resolve({ id: 'p1', ...x })),
     };
+    const maintenanceRepo = {
+      find: jest.fn(),
+      create: jest.fn((x) => x),
+      save: jest.fn((x) =>
+        Promise.resolve({ id: 'm1', createdAt: new Date('2026-07-08T10:00:00Z'), ...x }),
+      ),
+    };
     const cloudinary = { deleteByUrl: jest.fn() };
     const brands = { resolveIdForName: jest.fn().mockResolvedValue('brand-uuid') };
     const svc = new PrintersService(
       printerRepo as never,
+      maintenanceRepo as never,
       cloudinary as never,
       brands as never,
     );
-    return { svc, printerRepo, brands };
+    return { svc, printerRepo, maintenanceRepo, brands };
   };
 
   it('se instancia con sus dependencias mockeadas', () => {
@@ -61,6 +69,49 @@ describe('PrintersService', () => {
 
     expect(printer.totalPrintHours).toBe(502);
     expect(printer.hoursSinceSimpleMaintenance).toBe(502);
+  });
+
+  it('recordMaintenance guarda la entrada (nota + horas snapshot) y actualiza la fecha', async () => {
+    const { svc, printerRepo, maintenanceRepo } = makeService();
+    const user = { id: 'u1' } as never;
+    printerRepo.findOne.mockResolvedValue({
+      id: 'p1',
+      name: 'MK4',
+      initialPrintHours: 100,
+      printLogs: [{ printDuration: 120, createdAt: '2026-07-01T00:00:00Z' }],
+    });
+
+    const entry = await svc.recordMaintenance(
+      'p1',
+      { type: 'simple', note: '  Limpieza de boquilla  ' },
+      user,
+    );
+
+    // Entrada del historial: nota recortada + snapshot de horas (100 + 2).
+    expect(maintenanceRepo.create).toHaveBeenCalledWith({
+      printerId: 'p1',
+      type: 'simple',
+      note: 'Limpieza de boquilla',
+      printerHours: 102,
+    });
+    // La fecha del último mantenimiento simple se actualiza a la de la entrada.
+    const savedPrinter = printerRepo.save.mock.calls[0][0];
+    expect(savedPrinter.lastMaintenanceSimpleAt).toEqual(entry.createdAt);
+    expect(savedPrinter.lastMaintenanceFullAt).toBeUndefined();
+  });
+
+  it('findMaintenances valida propiedad y lista el historial más reciente primero', async () => {
+    const { svc, printerRepo, maintenanceRepo } = makeService();
+    const user = { id: 'u1' } as never;
+    printerRepo.findOne.mockResolvedValue({ id: 'p1', printLogs: [] });
+    maintenanceRepo.find.mockResolvedValue([]);
+
+    await svc.findMaintenances('p1', user);
+
+    expect(maintenanceRepo.find).toHaveBeenCalledWith({
+      where: { printerId: 'p1' },
+      order: { createdAt: 'DESC' },
+    });
   });
 
   it('tras registrar mantenimiento, las horas iniciales ya NO cuentan para ese contador', async () => {

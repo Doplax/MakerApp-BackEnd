@@ -13,6 +13,7 @@ import { AuthGuard } from '@nestjs/passport';
 import { PrintersService } from './printers.service.js';
 import { CreatePrinterDto } from './dto/create-printer.dto.js';
 import { UpdatePrinterDto } from './dto/update-printer.dto.js';
+import { CreateMaintenanceDto } from './dto/create-maintenance.dto.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { User } from '../users/entities/user.entity.js';
 
@@ -51,5 +52,24 @@ export class PrintersController {
   @Delete(':id')
   remove(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: User) {
     return this.printersService.remove(id, user);
+  }
+
+  /** Marca un mantenimiento como hecho (registra la entrada del historial). */
+  @Post(':id/maintenances')
+  recordMaintenance(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: CreateMaintenanceDto,
+    @CurrentUser() user: User,
+  ) {
+    return this.printersService.recordMaintenance(id, dto, user);
+  }
+
+  /** Historial de mantenimientos de la impresora. */
+  @Get(':id/maintenances')
+  findMaintenances(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: User,
+  ) {
+    return this.printersService.findMaintenances(id, user);
   }
 }

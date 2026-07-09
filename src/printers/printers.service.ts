@@ -3,7 +3,9 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CreatePrinterDto } from './dto/create-printer.dto.js';
 import { UpdatePrinterDto } from './dto/update-printer.dto.js';
+import { CreateMaintenanceDto } from './dto/create-maintenance.dto.js';
 import { Printer } from './entities/printer.entity.js';
+import { PrinterMaintenance } from './entities/printer-maintenance.entity.js';
 import { User } from '../users/entities/user.entity.js';
 import { CloudinaryService } from '../cloudinary/cloudinary.service.js';
 import { BrandsService } from '../brands/brands.service.js';
@@ -30,6 +32,8 @@ export class PrintersService {
   constructor(
     @InjectRepository(Printer)
     private readonly printerRepository: Repository<Printer>,
+    @InjectRepository(PrinterMaintenance)
+    private readonly maintenanceRepository: Repository<PrinterMaintenance>,
     private readonly cloudinary: CloudinaryService,
     private readonly brands: BrandsService,
   ) {}
@@ -192,6 +196,51 @@ export class PrintersService {
   async findAllByUser(userId: string): Promise<Printer[]> {
     return this.printerRepository.find({
       where: { createdBy: { id: userId } },
+    });
+  }
+
+  // ── Historial de mantenimientos ─────────────────────────────
+
+  /**
+   * Marca un mantenimiento como hecho: guarda la entrada en el historial (con
+   * nota opcional y las horas de la máquina como snapshot) y actualiza la
+   * fecha de último mantenimiento de la impresora.
+   */
+  async recordMaintenance(
+    printerId: string,
+    dto: CreateMaintenanceDto,
+    user: User,
+  ): Promise<PrinterMaintenance> {
+    const printer = await this.findOne(printerId, user); // valida propiedad
+    const entry = await this.maintenanceRepository.save(
+      this.maintenanceRepository.create({
+        printerId: printer.id,
+        type: dto.type,
+        note: dto.note?.trim() || null,
+        printerHours: printer.totalPrintHours ?? null,
+      }),
+    );
+    if (dto.type === 'simple') {
+      printer.lastMaintenanceSimpleAt = entry.createdAt;
+    } else {
+      printer.lastMaintenanceFullAt = entry.createdAt;
+    }
+    await this.printerRepository.save(printer);
+    this.logger.log(
+      `Mantenimiento ${dto.type} registrado en ${printer.name} (${printer.totalPrintHours} h)`,
+    );
+    return entry;
+  }
+
+  /** Historial de mantenimientos de una impresora (más recientes primero). */
+  async findMaintenances(
+    printerId: string,
+    user: User,
+  ): Promise<PrinterMaintenance[]> {
+    await this.findOne(printerId, user); // valida propiedad
+    return this.maintenanceRepository.find({
+      where: { printerId },
+      order: { createdAt: 'DESC' },
     });
   }
 }
