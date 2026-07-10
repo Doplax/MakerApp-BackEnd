@@ -32,6 +32,7 @@ import { CloudinaryModule } from './cloudinary/cloudinary.module.js';
 import { MailModule } from './mail/mail.module.js';
 import { NotificationsModule } from './notifications/notifications.module.js';
 import { ExchangeRatesModule } from './exchange-rates/exchange-rates.module.js';
+import { ClientsModule } from './clients/clients.module.js';
 
 @Module({
   imports: [
@@ -88,6 +89,7 @@ import { ExchangeRatesModule } from './exchange-rates/exchange-rates.module.js';
     MailModule,
     NotificationsModule,
     ExchangeRatesModule,
+    ClientsModule,
   ],
   controllers: [AppController],
   providers: [
