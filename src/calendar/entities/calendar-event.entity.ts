@@ -9,6 +9,16 @@ import {
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity.js';
 
+/** Tipos de evento del calendario (icono/color en el front). */
+export const CALENDAR_EVENT_TYPES = [
+  'maintenance', // mantenimiento
+  'print',       // impresión
+  'shipping',    // envío
+  'delivery',    // entrega
+  'reminder',    // recordatorio
+] as const;
+export type CalendarEventType = (typeof CALENDAR_EVENT_TYPES)[number];
+
 /**
  * Tarea/evento del calendario del maker (mantenimientos, entregas,
  * recordatorios…). Cada evento pertenece a UN maker (createdBy); el widget
@@ -22,6 +32,9 @@ export class CalendarEvent {
 
   @Column({ length: 150 })
   title!: string;
+
+  @Column({ type: 'varchar', length: 20, default: 'reminder' })
+  type!: CalendarEventType;
 
   @Column({ type: 'text', nullable: true })
   notes!: string | null;
