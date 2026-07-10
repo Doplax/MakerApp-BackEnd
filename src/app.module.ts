@@ -33,6 +33,7 @@ import { MailModule } from './mail/mail.module.js';
 import { NotificationsModule } from './notifications/notifications.module.js';
 import { ExchangeRatesModule } from './exchange-rates/exchange-rates.module.js';
 import { ClientsModule } from './clients/clients.module.js';
+import { CalendarModule } from './calendar/calendar.module.js';
 
 @Module({
   imports: [
@@ -90,6 +91,7 @@ import { ClientsModule } from './clients/clients.module.js';
     NotificationsModule,
     ExchangeRatesModule,
     ClientsModule,
+    CalendarModule,
   ],
   controllers: [AppController],
   providers: [
