@@ -34,6 +34,7 @@ import { NotificationsModule } from './notifications/notifications.module.js';
 import { ExchangeRatesModule } from './exchange-rates/exchange-rates.module.js';
 import { ClientsModule } from './clients/clients.module.js';
 import { CalendarModule } from './calendar/calendar.module.js';
+import { QuotesModule } from './quotes/quotes.module.js';
 
 @Module({
   imports: [
@@ -92,6 +93,7 @@ import { CalendarModule } from './calendar/calendar.module.js';
     ExchangeRatesModule,
     ClientsModule,
     CalendarModule,
+    QuotesModule,
   ],
   controllers: [AppController],
   providers: [
