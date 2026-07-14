@@ -364,6 +364,7 @@ export class UsersService {
       latitude: number;
       longitude: number;
       hideDirectionsButton: boolean;
+      isAvailable: boolean;
       ratingAverage: number;
       ratingCount: number;
     }[]
@@ -379,6 +380,7 @@ export class UsersService {
         'u.latitude',
         'u.longitude',
         'u.hideDirectionsButton',
+        'u.isAvailable',
       ])
       .where('u.isActive = :active', { active: true })
       .andWhere('u.latitude IS NOT NULL')
@@ -400,6 +402,9 @@ export class UsersService {
       latitude: Number(u.latitude),
       longitude: Number(u.longitude),
       hideDirectionsButton: !!u.hideDirectionsButton,
+      // Coalesce a true: en dev (synchronize) las filas previas pueden venir
+      // sin valor; el comportamiento histórico es "disponible".
+      isAvailable: u.isAvailable !== false,
       ratingAverage: ratings.get(u.id)?.average ?? 0,
       ratingCount: ratings.get(u.id)?.count ?? 0,
     }));
@@ -543,6 +548,7 @@ export class UsersService {
       ratingAverage: rating.average,
       ratingCount: rating.count,
       monthlyPrintHours,
+      isAvailable: user.isAvailable !== false,
     };
   }
 

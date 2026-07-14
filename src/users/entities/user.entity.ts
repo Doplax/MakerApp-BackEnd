@@ -179,6 +179,9 @@ export class User {
   @Column({ default: false })
   hideDirectionsButton!: boolean; // oculta el botón "Cómo llegar" del mapa
 
+  @Column({ default: true })
+  isAvailable!: boolean; // ¿acepta presupuestos? (visible en los mapas)
+
   @Column({
     type: 'decimal',
     precision: 5,

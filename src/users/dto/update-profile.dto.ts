@@ -183,6 +183,10 @@ export class UpdateProfileDto {
   @IsOptional()
   hideDirectionsButton?: boolean;
 
+  @IsBoolean()
+  @IsOptional()
+  isAvailable?: boolean;
+
   @IsNumber()
   @IsOptional()
   @Min(0)

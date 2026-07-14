@@ -65,6 +65,56 @@ describe('UsersService', () => {
     });
   });
 
+  describe('updateProfile — disponibilidad (toggle Disponible/No disponible)', () => {
+    it('aplica isAvailable=false al guardar (deja de aceptar presupuestos)', async () => {
+      userRepo.findOne.mockResolvedValue({
+        id: 'u1', avatarUrl: null, invoiceLogoUrl: null, isAvailable: true,
+      });
+      await service.updateProfile('u1', { isAvailable: false } as never);
+      expect(userRepo.save).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'u1', isAvailable: false }),
+      );
+    });
+  });
+
+  describe('findMakersOnMap — disponibilidad y rating en los pins', () => {
+    it('expone isAvailable (coalescido a true) y el rating agregado', async () => {
+      const rows = [
+        { id: 'm1', fullName: 'Laia', latitude: '40.4', longitude: '-3.7', isAvailable: false },
+        { id: 'm2', fullName: 'Marc', latitude: '41.3', longitude: '2.1', isAvailable: undefined },
+      ];
+      userRepo.createQueryBuilder.mockReturnValue({
+        select: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        getMany: jest.fn().mockResolvedValue(rows),
+      });
+      const reviews = {
+        getRatingSummaries: jest.fn().mockResolvedValue(
+          new Map([['m1', { average: 4.9, count: 128 }]]),
+        ),
+      };
+      const svc = new UsersService(
+        userRepo as never,
+        repoMock() as never,
+        repoMock() as never,
+        reviews as never,
+        cloudinary as never,
+      );
+
+      const pins = await svc.findMakersOnMap();
+
+      expect(reviews.getRatingSummaries).toHaveBeenCalledWith(['m1', 'm2']);
+      expect(pins[0]).toEqual(
+        expect.objectContaining({ id: 'm1', isAvailable: false, ratingAverage: 4.9, ratingCount: 128 }),
+      );
+      // Sin valor en BD (dev/synchronize) → disponible, el comportamiento histórico
+      expect(pins[1]).toEqual(
+        expect.objectContaining({ id: 'm2', isAvailable: true, ratingAverage: 0, ratingCount: 0 }),
+      );
+    });
+  });
+
   describe('updateProfile — limpieza de ficheros', () => {
     it('borra el avatar antiguo cuando se reemplaza', async () => {
       userRepo.findOne.mockResolvedValue({

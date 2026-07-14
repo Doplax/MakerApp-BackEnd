@@ -73,4 +73,8 @@ export class PublicMakerProfileDto {
 
   // Horas de impresión completadas en los últimos 30 días (para el perfil).
   monthlyPrintHours!: number;
+
+  // ¿Acepta presupuestos? (toggle del maker en su dashboard; se enseña en los
+  // mapas y, si es false, no se le pueden pedir presupuestos)
+  isAvailable!: boolean;
 }
