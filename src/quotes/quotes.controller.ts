@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Patch,
   Delete,
   Param,
   Body,
@@ -11,6 +12,7 @@ import {
 import { AuthGuard } from '@nestjs/passport';
 import { QuotesService } from './quotes.service.js';
 import { CreateQuoteDto } from './dto/create-quote.dto.js';
+import { UpdateQuoteDto } from './dto/update-quote.dto.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { User } from '../users/entities/user.entity.js';
 
@@ -33,6 +35,15 @@ export class QuotesController {
   @Post()
   create(@Body() dto: CreateQuoteDto, @CurrentUser() user: User) {
     return this.quotes.create(dto, user);
+  }
+
+  @Patch(':id')
+  update(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateQuoteDto,
+    @CurrentUser() user: User,
+  ) {
+    return this.quotes.update(id, dto, user);
   }
 
   @Delete(':id')

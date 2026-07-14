@@ -79,6 +79,27 @@ describe('QuotesService', () => {
     });
   });
 
+  it('update re-guarda el snapshot recalculando céntimos sin duplicar', async () => {
+    const { service, repo } = buildService();
+    repo.findOne.mockResolvedValue({
+      id: 'q-1', reference: 'R-1', baseCents: 1000, vatPercent: 21,
+      vatCents: 210, totalCents: 1210, clientName: null, createdById: 'user-1',
+    });
+
+    await service.update('q-1', { base: 20, clientName: 'Clau' }, me);
+
+    expect(repo.save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'q-1',            // MISMO registro (no se crea otro)
+        clientName: 'Clau',
+        baseCents: 2000,
+        vatPercent: 21,       // conserva el IVA guardado si no viene
+        vatCents: 420,
+        totalCents: 2420,
+      }),
+    );
+  });
+
   it('remove borra el presupuesto propio', async () => {
     const { service, repo } = buildService();
     repo.findOne.mockResolvedValue({ id: 'q-1', reference: 'R-9', createdById: 'user-1' });

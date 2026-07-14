@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Quote } from './entities/quote.entity.js';
 import { CreateQuoteDto } from './dto/create-quote.dto.js';
+import { UpdateQuoteDto } from './dto/update-quote.dto.js';
 import { User } from '../users/entities/user.entity.js';
 
 /**
@@ -51,6 +52,26 @@ export class QuotesService {
       totalCents: baseCents + vatCents,
       createdById: user.id,
     });
+    return this.quoteRepository.save(quote);
+  }
+
+  /**
+   * Actualiza el snapshot (el maker re-guarda tras editar el modal, SIN
+   * duplicar el historial). Recalcula los céntimos con los valores nuevos
+   * o los ya guardados.
+   */
+  async update(id: string, dto: UpdateQuoteDto, user: User): Promise<Quote> {
+    const quote = await this.findOne(id, user);
+    const { base, vatPercent, ...rest } = dto;
+    Object.assign(quote, rest);
+
+    const nextBaseCents = base != null ? Math.round(base * 100) : quote.baseCents;
+    const nextVatPercent = vatPercent ?? Number(quote.vatPercent);
+    quote.baseCents = nextBaseCents;
+    quote.vatPercent = nextVatPercent;
+    quote.vatCents = Math.round((nextBaseCents * nextVatPercent) / 100);
+    quote.totalCents = quote.baseCents + quote.vatCents;
+
     return this.quoteRepository.save(quote);
   }
 
