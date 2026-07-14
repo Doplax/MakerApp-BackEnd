@@ -572,6 +572,9 @@ export class UsersService {
       throw new NotFoundException(`Project with ID ${projectId} not found`);
     }
 
+    // Reputación del maker junto a su nombre en la ficha del producto.
+    const rating = await this.makerReviewsService.getMakerRatingSummary(user.id);
+
     return {
       id: project.id,
       name: project.name,
@@ -590,6 +593,8 @@ export class UsersService {
         id: user.id,
         fullName: user.fullName,
         avatarUrl: user.avatarUrl,
+        ratingAverage: rating.average,
+        ratingCount: rating.count,
         // El comprador puede pagar online solo si el maker completó el onboarding
         // de Stripe (chargesEnabled), no solo si existe la cuenta.
         acceptsPayments: !!user.stripeAccountId && !!user.chargesEnabled,
