@@ -129,6 +129,35 @@ export class MakerReviewsService {
     return { average, count };
   }
 
+  /**
+   * Resúmenes de rating de varios makers en UNA consulta (GROUP BY). Para
+   * listados (p. ej. los pins del mapa público) donde llamar al summary
+   * individual por maker sería N consultas.
+   */
+  async getRatingSummaries(
+    makerIds: string[],
+  ): Promise<Map<string, MakerRatingSummary>> {
+    const result = new Map<string, MakerRatingSummary>();
+    if (!makerIds.length) return result;
+
+    const rows = await this.reviewRepo
+      .createQueryBuilder('r')
+      .select('r.makerId', 'makerId')
+      .addSelect('AVG(r.rating)', 'avg')
+      .addSelect('COUNT(r.id)', 'count')
+      .where('r.makerId IN (:...makerIds)', { makerIds })
+      .groupBy('r.makerId')
+      .getRawMany<{ makerId: string; avg: string | null; count: string }>();
+
+    for (const row of rows) {
+      result.set(row.makerId, {
+        average: row.avg ? parseFloat(parseFloat(row.avg).toFixed(2)) : 0,
+        count: row.count ? parseInt(row.count, 10) : 0,
+      });
+    }
+    return result;
+  }
+
   async update(
     id: string,
     dto: UpdateMakerReviewDto,

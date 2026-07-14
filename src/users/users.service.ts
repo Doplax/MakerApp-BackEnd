@@ -364,6 +364,8 @@ export class UsersService {
       latitude: number;
       longitude: number;
       hideDirectionsButton: boolean;
+      ratingAverage: number;
+      ratingCount: number;
     }[]
   > {
     const makers = await this.userRepository
@@ -383,6 +385,12 @@ export class UsersService {
       .andWhere('u.longitude IS NOT NULL')
       .getMany();
 
+    // Rating de todos los makers en una sola consulta agregada: la tarjeta
+    // del mapa (in-app y landing) muestra "★ 4,9 (128)" junto al nombre.
+    const ratings = await this.makerReviewsService.getRatingSummaries(
+      makers.map((u) => u.id),
+    );
+
     return makers.map((u) => ({
       id: u.id,
       fullName: u.fullName,
@@ -392,6 +400,8 @@ export class UsersService {
       latitude: Number(u.latitude),
       longitude: Number(u.longitude),
       hideDirectionsButton: !!u.hideDirectionsButton,
+      ratingAverage: ratings.get(u.id)?.average ?? 0,
+      ratingCount: ratings.get(u.id)?.count ?? 0,
     }));
   }
 
