@@ -28,9 +28,11 @@ export class MailService {
   private readonly transporter: Transporter;
   private readonly from: string;
 
-  // ── Identidad de marca (estética corporativa MΛkerUp) ────────
+  // ── Identidad de marca (estética corporativa MakerUp) ────────
+  // Nombre en TEXTO con "A" normal (mejor SEO/legibilidad y clientes de
+  // correo); la lambda estilizada solo vive en el logo gráfico.
   private static readonly BRAND = {
-    name: 'MΛkerUp',
+    name: 'MakerUp',
     tagline: 'Comunidad de makers 3D',
     // Logo alojado en producción (siempre accesible desde cualquier cliente)
     logoUrl: 'https://makerup.app/logo.png',
@@ -51,7 +53,7 @@ export class MailService {
   constructor(private readonly config: ConfigService) {
     this.from = config.get<string>(
       'MAIL_FROM',
-      '"MΛkerUp" <noreply@makerup.app>',
+      '"MakerUp" <noreply@makerup.app>',
     );
 
     this.transporter = nodemailer.createTransport({
@@ -97,10 +99,10 @@ export class MailService {
 
   async sendWelcome(to: string, name: string): Promise<void> {
     const html = this.baseTemplate({
-      preheader: 'Tu cuenta de MΛkerUp ya está activa. ¡Empieza a crear!',
+      preheader: 'Tu cuenta de MakerUp ya está activa. ¡Empieza a crear!',
       heading: `¡Hola, ${this.escape(name)}!`,
       body: `
-        <p>Te damos la bienvenida a <strong>MΛkerUp</strong>, la plataforma para makers de impresión 3D.</p>
+        <p>Te damos la bienvenida a <strong>MakerUp</strong>, la plataforma para makers de impresión 3D.</p>
         <p>Desde tu panel ya puedes:</p>
         <ul style="margin:0 0 8px;padding-left:20px;color:${MailService.BRAND.text}">
           <li style="margin:6px 0">Registrar tus impresoras y controlar su mantenimiento.</li>
@@ -114,15 +116,15 @@ export class MailService {
 
     await this.send({
       to,
-      subject: '¡Bienvenido/a a MΛkerUp!',
+      subject: '¡Bienvenido/a a MakerUp!',
       html,
-      text: `Hola ${name}, te damos la bienvenida a MΛkerUp. Tu cuenta ya está activa: ${this.appUrl()}/dashboard`,
+      text: `Hola ${name}, te damos la bienvenida a MakerUp. Tu cuenta ya está activa: ${this.appUrl()}/dashboard`,
     });
   }
 
   async sendPasswordReset(to: string, resetUrl: string): Promise<void> {
     const html = this.baseTemplate({
-      preheader: 'Restablece la contraseña de tu cuenta MΛkerUp (enlace válido 1 hora).',
+      preheader: 'Restablece la contraseña de tu cuenta MakerUp (enlace válido 1 hora).',
       heading: 'Restablecer contraseña',
       body: `
         <p>Hemos recibido una solicitud para restablecer la contraseña de tu cuenta.</p>
@@ -138,7 +140,7 @@ export class MailService {
 
     await this.send({
       to,
-      subject: 'Restablece tu contraseña — MΛkerUp',
+      subject: 'Restablece tu contraseña — MakerUp',
       html,
       text: `Para restablecer tu contraseña visita este enlace (válido 1 hora): ${resetUrl}`,
     });
