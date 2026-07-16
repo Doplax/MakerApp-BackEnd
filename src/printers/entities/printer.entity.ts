@@ -76,6 +76,14 @@ export class Printer {
   @Column({ nullable: true })
   imageUrl!: string;
 
+  // Número de serie (opcional; lo rellena el maker si quiere).
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  serialNumber!: string | null;
+
+  // Enlace a la tienda del modelo (viene del catálogo/Excel). Botón "Ver en tienda".
+  @Column({ type: 'varchar', nullable: true })
+  storeUrl!: string | null;
+
   @Column({ default: true })
   isActive!: boolean;
 

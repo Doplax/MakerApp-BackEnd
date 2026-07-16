@@ -79,6 +79,16 @@ export class CreatePrinterDto {
   @IsOptional()
   imageUrl?: string;
 
+  @IsString()
+  @IsOptional()
+  @MaxLength(100)
+  serialNumber?: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(500)
+  storeUrl?: string;
+
   @IsNumber()
   @IsPositive()
   @IsOptional()
