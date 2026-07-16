@@ -22,6 +22,7 @@ import { FilamentCatalogModule } from './filament-catalog/filament-catalog.modul
 import { PrinterCatalogModule } from './printer-catalog/printer-catalog.module.js';
 import { BrandsModule } from './brands/brands.module.js';
 import { FilamentOffersModule } from './filament-offers/filament-offers.module.js';
+import { PrinterAccessoriesModule } from './printer-accessories/printer-accessories.module.js';
 import { ReviewsModule } from './reviews/reviews.module.js';
 import { StripeModule } from './stripe/stripe.module.js';
 import { PurchasesModule } from './purchases/purchases.module.js';
@@ -81,6 +82,7 @@ import { QuotesModule } from './quotes/quotes.module.js';
     PrinterCatalogModule,
     BrandsModule,
     FilamentOffersModule,
+    PrinterAccessoriesModule,
     ReviewsModule,
     StripeModule,
     PurchasesModule,

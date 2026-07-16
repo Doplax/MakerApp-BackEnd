@@ -89,6 +89,36 @@ export class CreatePrinterDto {
   @MaxLength(500)
   storeUrl?: string;
 
+  @IsInt()
+  @IsPositive()
+  @IsOptional()
+  extruderMaxTemp?: number;
+
+  @IsInt()
+  @IsPositive()
+  @IsOptional()
+  bedMaxTemp?: number;
+
+  @IsInt()
+  @IsPositive()
+  @IsOptional()
+  maxSpeed?: number;
+
+  @IsInt()
+  @IsPositive()
+  @IsOptional()
+  extruderCount?: number;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(100)
+  location?: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(500)
+  printProfileUrl?: string;
+
   @IsNumber()
   @IsPositive()
   @IsOptional()

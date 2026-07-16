@@ -84,6 +84,25 @@ export class Printer {
   @Column({ type: 'varchar', nullable: true })
   storeUrl!: string | null;
 
+  // ── Características técnicas (opcionales; para la ficha) ────
+  @Column({ type: 'int', nullable: true })
+  extruderMaxTemp!: number | null; // °C
+
+  @Column({ type: 'int', nullable: true })
+  bedMaxTemp!: number | null; // °C
+
+  @Column({ type: 'int', nullable: true })
+  maxSpeed!: number | null; // mm/s
+
+  @Column({ type: 'int', nullable: true })
+  extruderCount!: number | null;
+
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  location!: string | null; // Ubicación física (p. ej. "Estantería A")
+
+  @Column({ type: 'varchar', nullable: true })
+  printProfileUrl!: string | null; // Enlace al perfil de impresión
+
   @Column({ default: true })
   isActive!: boolean;
 

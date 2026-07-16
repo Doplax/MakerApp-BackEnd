@@ -17,14 +17,35 @@ export class AddPrinterSerialAndStore1790400000000
     await queryRunner.query(
       `ALTER TABLE "printers" ADD COLUMN IF NOT EXISTS "storeUrl" character varying`,
     );
+    // Características técnicas opcionales (para la ficha detallada).
+    await queryRunner.query(
+      `ALTER TABLE "printers" ADD COLUMN IF NOT EXISTS "extruderMaxTemp" integer`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "printers" ADD COLUMN IF NOT EXISTS "bedMaxTemp" integer`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "printers" ADD COLUMN IF NOT EXISTS "maxSpeed" integer`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "printers" ADD COLUMN IF NOT EXISTS "extruderCount" integer`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "printers" ADD COLUMN IF NOT EXISTS "location" character varying(100)`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "printers" ADD COLUMN IF NOT EXISTS "printProfileUrl" character varying`,
+    );
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(
-      `ALTER TABLE "printers" DROP COLUMN IF EXISTS "serialNumber"`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "printers" DROP COLUMN IF EXISTS "storeUrl"`,
-    );
+    for (const col of [
+      'serialNumber', 'storeUrl', 'extruderMaxTemp', 'bedMaxTemp',
+      'maxSpeed', 'extruderCount', 'location', 'printProfileUrl',
+    ]) {
+      await queryRunner.query(
+        `ALTER TABLE "printers" DROP COLUMN IF EXISTS "${col}"`,
+      );
+    }
   }
 }
