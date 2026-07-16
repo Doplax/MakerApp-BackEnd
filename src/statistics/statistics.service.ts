@@ -109,6 +109,7 @@ export class StatisticsService {
       colorRows,
       lowStockFilaments,
       printLogAgg,
+      printStatusRows,
       topFilamentRows,
       totalPrinters,
       totalProjects,
@@ -183,6 +184,16 @@ export class StatisticsService {
         .where('pl.createdBy = :userId', { userId })
         .getRawOne(),
 
+      // Distribución por estado de impresión (columnas del kanban de Proyectos:
+      // pending=Presupuestado, in_progress=En producción, completed=Pendiente envío)
+      this.printLogRepository
+        .createQueryBuilder('pl')
+        .select('pl.status', 'status')
+        .addSelect('COUNT(*)', 'count')
+        .where('pl.createdBy = :userId', { userId })
+        .groupBy('pl.status')
+        .getRawMany(),
+
       // Top 5 filamentos por peso consumido
       this.printLogRepository
         .createQueryBuilder('pl')
@@ -242,6 +253,12 @@ export class StatisticsService {
       statusDistribution[r.status] = parseInt(r.count);
     });
 
+    // Estado de las IMPRESIONES (columnas del kanban del dashboard/Proyectos).
+    const printStatusDistribution: Record<string, number> = {};
+    printStatusRows.forEach((r: any) => {
+      printStatusDistribution[r.status] = parseInt(r.count);
+    });
+
     const colorDistribution: Record<
       string,
       { count: number; hex: string | null }
@@ -286,6 +303,7 @@ export class StatisticsService {
       distributions: {
         byMaterial: materialDistribution,
         byStatus: statusDistribution,
+        byPrintStatus: printStatusDistribution,
         byColor: colorDistribution,
       },
       recentActivity: recentPrintLogs,
