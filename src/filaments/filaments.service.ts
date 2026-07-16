@@ -83,6 +83,10 @@ export class FilamentsService {
     const filament = this.filamentRepository.create({
       ...filamentData,
       brandId: brandId ?? undefined,
+      // Por defecto PÚBLICO (se ve en el perfil del maker); solo privado si el
+      // cliente lo pide explícitamente. En la ruta de catálogo `filamentData`
+      // se reconstruye sin isPublic, por eso lo tomamos siempre del DTO aquí.
+      isPublic: createFilamentDto.isPublic ?? true,
       remainingWeight:
         createFilamentDto.remainingWeight ??
         filamentData.totalWeight ??

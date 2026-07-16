@@ -93,7 +93,10 @@ export class Filament {
   @Column({ nullable: true, length: 50 })
   spoolType!: string;
 
-  @Column({ default: false })
+  // Por defecto público: al añadir un filamento se ve en el perfil del maker
+  // sin tener que activarlo a mano (el servicio de creación aplica el mismo
+  // default). No afecta a filamentos ya existentes.
+  @Column({ default: true })
   isPublic!: boolean;
 
   @ManyToOne(() => FilamentCatalog, { eager: true, nullable: true })
