@@ -27,6 +27,13 @@ export class MailService {
   private readonly logger = new Logger(MailService.name);
   private readonly transporter: Transporter;
   private readonly from: string;
+  /**
+   * Envío de correos activado. Por defecto SOLO en producción (así en local/dev,
+   * donde se hacen pruebas y corren los E2E, no se manda nada y no hay rebotes).
+   * Se puede forzar con `MAIL_ENABLED=true|false` (tiene prioridad sobre el
+   * entorno) — p. ej. para probar el envío real en local puntualmente.
+   */
+  private readonly mailEnabled: boolean;
 
   // ── Identidad de marca (estética corporativa MakerUp) ────────
   // Nombre en TEXTO con "A" normal (mejor SEO/legibilidad y clientes de
@@ -56,6 +63,18 @@ export class MailService {
       '"MakerUp" <noreply@makerup.app>',
     );
 
+    // Flag explícito (MAIL_ENABLED) manda; si no, activo solo en producción.
+    const explicit = config.get<string>('MAIL_ENABLED');
+    this.mailEnabled =
+      explicit != null
+        ? explicit.toLowerCase() === 'true'
+        : config.get<string>('NODE_ENV') === 'production';
+    if (!this.mailEnabled) {
+      this.logger.log(
+        'Envío de correos DESACTIVADO (entorno de pruebas). Actívalo con MAIL_ENABLED=true o NODE_ENV=production.',
+      );
+    }
+
     this.transporter = nodemailer.createTransport({
       host: config.get<string>('MAIL_HOST', 'smtp.gmail.com'),
       port: Number(config.get<string>('MAIL_PORT', '587')),
@@ -68,6 +87,12 @@ export class MailService {
   }
 
   async send(options: SendMailOptions): Promise<void> {
+    // Entorno de pruebas: no se envía nada (evita rebotes al testear).
+    if (!this.mailEnabled) {
+      this.logger.debug(`Email NO enviado (envío desactivado): ${options.to} — ${options.subject}`);
+      return;
+    }
+
     // Omite direcciones de prueba/no enrutables (cuentas de test, E2E…): enviarles
     // el correo solo provoca rebotes "Address not found" en la bandeja del
     // remitente. Los usuarios reales no se ven afectados.
