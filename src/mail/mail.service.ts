@@ -68,19 +68,43 @@ export class MailService {
   }
 
   async send(options: SendMailOptions): Promise<void> {
+    // Omite direcciones de prueba/no enrutables (cuentas de test, E2E…): enviarles
+    // el correo solo provoca rebotes "Address not found" en la bandeja del
+    // remitente. Los usuarios reales no se ven afectados.
+    const recipients = Array.isArray(options.to) ? options.to : [options.to];
+    const deliverable = recipients.filter((r) => !MailService.isUndeliverable(r));
+    if (deliverable.length === 0) {
+      this.logger.debug(
+        `Email omitido (destinatario de prueba/no enrutable): ${recipients.join(', ')} — ${options.subject}`,
+      );
+      return;
+    }
+
     try {
       await this.transporter.sendMail({
         from: this.from,
-        to: Array.isArray(options.to) ? options.to.join(', ') : options.to,
+        to: deliverable.join(', '),
         subject: options.subject,
         html: options.html,
         text: options.text,
       });
-      this.logger.log(`Email enviado a ${options.to}: ${options.subject}`);
+      this.logger.log(`Email enviado a ${deliverable.join(', ')}: ${options.subject}`);
     } catch (err) {
-      this.logger.error(`Error enviando email a ${options.to}`, err);
+      this.logger.error(`Error enviando email a ${deliverable.join(', ')}`, err);
       throw err;
     }
+  }
+
+  /**
+   * ¿La dirección es de un dominio de prueba/reservado que no puede recibir
+   * correo? (RFC 2606/6761: .test/.example/.invalid/.localhost; mDNS .local;
+   * y los dominios example.*). Enviarles correo genera rebotes.
+   */
+  private static isUndeliverable(email: string): boolean {
+    const domain = (email ?? '').trim().toLowerCase().split('@')[1] ?? '';
+    if (!domain) return true;
+    if (/\.(local|test|example|invalid|localhost)$/.test(domain)) return true;
+    return ['example.com', 'example.org', 'example.net'].includes(domain);
   }
 
   /** Verifica la conexión SMTP (útil para diagnóstico al arrancar). */
