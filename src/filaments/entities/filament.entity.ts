@@ -93,6 +93,17 @@ export class Filament {
   @Column({ nullable: true, length: 50 })
   spoolType!: string;
 
+  // Organización del inventario (ayuda a los makers a localizar la bobina):
+  // ubicación física, nº de lote/colada y acabado (mate, brillo, seda…).
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  location!: string | null;
+
+  @Column({ type: 'varchar', length: 60, nullable: true })
+  lot!: string | null;
+
+  @Column({ type: 'varchar', length: 50, nullable: true })
+  finish!: string | null;
+
   // Por defecto público: al añadir un filamento se ve en el perfil del maker
   // sin tener que activarlo a mano (el servicio de creación aplica el mismo
   // default). No afecta a filamentos ya existentes.

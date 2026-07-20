@@ -87,6 +87,11 @@ export class FilamentsService {
       // cliente lo pide explícitamente. En la ruta de catálogo `filamentData`
       // se reconstruye sin isPublic, por eso lo tomamos siempre del DTO aquí.
       isPublic: createFilamentDto.isPublic ?? true,
+      // Igual que isPublic: la ruta de catálogo reconstruye filamentData sin
+      // estos campos, así que los tomamos del DTO aquí para ambas rutas.
+      location: createFilamentDto.location ?? undefined,
+      lot: createFilamentDto.lot ?? undefined,
+      finish: createFilamentDto.finish ?? undefined,
       remainingWeight:
         createFilamentDto.remainingWeight ??
         filamentData.totalWeight ??

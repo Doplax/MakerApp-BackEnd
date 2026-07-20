@@ -107,6 +107,22 @@ export class CreateFilamentDto {
   @MaxLength(50)
   spoolType?: string;
 
+  // Organización del inventario: ubicación, lote y acabado.
+  @IsString()
+  @IsOptional()
+  @MaxLength(100)
+  location?: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(60)
+  lot?: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(50)
+  finish?: string;
+
   @IsBoolean()
   @IsOptional()
   isPublic?: boolean;
