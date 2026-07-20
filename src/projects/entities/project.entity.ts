@@ -37,6 +37,11 @@ export class Project {
   @Column({ type: 'timestamp', nullable: true })
   orderDeadline!: Date | null; // fecha límite del pedido
 
+  // Fecha de inicio del proyecto (cuándo se empezó). Se guarda al crearlo (por
+  // defecto hoy) y es editable. Solo la fecha (sin hora) → tipo `date`.
+  @Column({ type: 'date', nullable: true })
+  startDate!: string | null;
+
   @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
   price!: number | null; // precio del proyecto/pedido (€)
 

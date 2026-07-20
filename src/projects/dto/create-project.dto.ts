@@ -1,6 +1,7 @@
 import {
   IsArray,
   IsBoolean,
+  IsDateString,
   IsIn,
   IsNotEmpty,
   IsNumber,
@@ -29,6 +30,11 @@ export class CreateProjectDto {
 
   @IsOptional()
   orderDeadline?: Date;
+
+  // Fecha de inicio del proyecto (YYYY-MM-DD). Se guarda al crearlo.
+  @IsDateString()
+  @IsOptional()
+  startDate?: string;
 
   @IsNumber()
   @IsPositive()
