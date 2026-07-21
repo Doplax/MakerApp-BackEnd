@@ -64,6 +64,12 @@ import { QuotesModule } from './quotes/quotes.module.js';
         // sin pérdida de datos. En dev (synchronize on) no se ejecutan.
         migrations: [join(__dirname, 'database', 'migrations', '*.js')],
         migrationsRun: process.env.DB_SYNCHRONIZE !== 'true',
+        // Cada migración en su PROPIA transacción (no todas en una). Necesario
+        // para `ALTER TYPE ... ADD VALUE` (el valor de enum nuevo no puede usarse
+        // en la misma transacción en que se añade): así 'maker' se confirma en su
+        // migración antes de que la siguiente lo use en el UPDATE. Además, más
+        // seguro en general (un fallo no revierte las ya aplicadas).
+        migrationsTransactionMode: 'each',
         // SSL según la URL resuelta (helper). EasyPanel (prod) = sin SSL; Neon (dev) = SSL.
         ssl: resolveDatabaseSsl(),
       }),

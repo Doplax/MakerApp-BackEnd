@@ -32,5 +32,8 @@ export const AppDataSource = new DataSource({
   entities: [path.resolve(__dirname, '../**/*.entity{.ts,.js}')],
   migrations: [path.resolve(__dirname, './migrations/*{.ts,.js}')],
   synchronize: false,
+  // Cada migración en su propia transacción (ver app.module.ts): imprescindible
+  // para `ALTER TYPE ... ADD VALUE` seguido de un UPDATE que use el valor nuevo.
+  migrationsTransactionMode: 'each',
   logging: false,
 });

@@ -1,5 +1,6 @@
-import { BadRequestException, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { UsersService } from './users.service';
+import { UserRole } from '../common/enums/index.js';
 
 function repoMock() {
   return {
@@ -136,6 +137,38 @@ describe('UsersService', () => {
       expect(pins[1]).toEqual(
         expect.objectContaining({ id: 'm2', isAvailable: true, ratingAverage: 0, ratingCount: 0 }),
       );
+    });
+
+    it('filtra por rol: solo maker/admin aparecen en el mapa (no clientes)', async () => {
+      const andWhere = jest.fn().mockReturnThis();
+      userRepo.createQueryBuilder.mockReturnValue({
+        select: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere,
+        getMany: jest.fn().mockResolvedValue([]),
+      });
+      const svc = new UsersService(
+        userRepo as never,
+        repoMock() as never,
+        repoMock() as never,
+        { getRatingSummaries: jest.fn().mockResolvedValue(new Map()) } as never,
+        cloudinary as never,
+      );
+
+      await svc.findMakersOnMap();
+
+      const roleCall = andWhere.mock.calls.find(
+        ([sql, params]) => /role/i.test(sql) && params?.roles,
+      );
+      expect(roleCall).toBeDefined();
+      expect(roleCall![1].roles).toEqual([UserRole.MAKER, UserRole.ADMIN]);
+    });
+  });
+
+  describe('findPublicProfile — el cliente no tiene perfil público de maker', () => {
+    it('lanza NotFound si el usuario es un cliente (role user)', async () => {
+      userRepo.findOne.mockResolvedValue({ id: 'c1', role: 'user', printers: [], projects: [] });
+      await expect(service.findPublicProfile('c1')).rejects.toBeInstanceOf(NotFoundException);
     });
   });
 
