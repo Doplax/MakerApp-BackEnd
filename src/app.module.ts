@@ -23,6 +23,7 @@ import { PrinterCatalogModule } from './printer-catalog/printer-catalog.module.j
 import { BrandsModule } from './brands/brands.module.js';
 import { FilamentOffersModule } from './filament-offers/filament-offers.module.js';
 import { PrinterAccessoriesModule } from './printer-accessories/printer-accessories.module.js';
+import { ColorsModule } from './colors/colors.module.js';
 import { ReviewsModule } from './reviews/reviews.module.js';
 import { StripeModule } from './stripe/stripe.module.js';
 import { PurchasesModule } from './purchases/purchases.module.js';
@@ -83,6 +84,7 @@ import { QuotesModule } from './quotes/quotes.module.js';
     BrandsModule,
     FilamentOffersModule,
     PrinterAccessoriesModule,
+    ColorsModule,
     ReviewsModule,
     StripeModule,
     PurchasesModule,
