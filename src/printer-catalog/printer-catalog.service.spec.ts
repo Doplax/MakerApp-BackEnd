@@ -1,5 +1,6 @@
 import { NotFoundException } from '@nestjs/common';
 import { PrinterCatalogService } from './printer-catalog.service';
+import { DEFAULT_PRINTER_CATALOG } from './default-printer-catalog';
 import type { PrinterCatalog } from './entities/printer-catalog.entity';
 
 describe('PrinterCatalogService', () => {
@@ -65,6 +66,41 @@ describe('PrinterCatalogService', () => {
     expect(repo.save).toHaveBeenCalledWith(
       expect.objectContaining({ id: 'cat-1', buildVolumeX: 250 }),
     );
+  });
+
+  it('seedDefaults hace upsert de todo el catálogo predefinido', async () => {
+    const { service, repo } = buildService();
+    repo.findOne.mockResolvedValue(null);
+
+    const result = await service.seedDefaults();
+
+    expect(result.total).toBe(DEFAULT_PRINTER_CATALOG.length);
+    expect(result.created).toBe(DEFAULT_PRINTER_CATALOG.length);
+    expect(repo.save).toHaveBeenCalledTimes(DEFAULT_PRINTER_CATALOG.length);
+  });
+
+  describe('DEFAULT_PRINTER_CATALOG (dataset)', () => {
+    it('no tiene duplicados por marca+modelo (clave del upsert)', () => {
+      const keys = DEFAULT_PRINTER_CATALOG.map((m) => `${m.brand}|${m.model}`.toLowerCase());
+      expect(new Set(keys).size).toBe(keys.length);
+    });
+
+    it('la H2D es de doble extrusor y todas las specs son positivas', () => {
+      const h2d = DEFAULT_PRINTER_CATALOG.find((m) => m.model === 'H2D');
+      expect(h2d?.extruderCount).toBe(2);
+      for (const m of DEFAULT_PRINTER_CATALOG) {
+        for (const v of [m.extruderMaxTemp, m.bedMaxTemp, m.maxSpeed, m.extruderCount]) {
+          if (v != null) expect(v).toBeGreaterThan(0);
+        }
+      }
+    });
+
+    it('los volúmenes, si se definen, vienen completos (X, Y y Z)', () => {
+      for (const m of DEFAULT_PRINTER_CATALOG) {
+        const dims = [m.buildVolumeX, m.buildVolumeY, m.buildVolumeZ].filter((d) => d != null);
+        expect(dims.length === 0 || dims.length === 3).toBe(true);
+      }
+    });
   });
 
   it('update borra la imagen anterior solo si cambió', async () => {

@@ -51,6 +51,26 @@ export class CreatePrinterCatalogDto {
   @IsOptional()
   powerConsumption?: number;
 
+  @IsInt()
+  @IsPositive()
+  @IsOptional()
+  extruderMaxTemp?: number;
+
+  @IsInt()
+  @IsPositive()
+  @IsOptional()
+  bedMaxTemp?: number;
+
+  @IsInt()
+  @IsPositive()
+  @IsOptional()
+  maxSpeed?: number;
+
+  @IsInt()
+  @IsPositive()
+  @IsOptional()
+  extruderCount?: number;
+
   @IsNumber()
   @Min(0)
   @IsOptional()

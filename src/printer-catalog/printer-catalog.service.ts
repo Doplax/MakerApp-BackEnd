@@ -7,6 +7,7 @@ import { UpdatePrinterCatalogDto } from './dto/update-printer-catalog.dto.js';
 import { FilterPrinterCatalogDto } from './dto/filter-printer-catalog.dto.js';
 import { CloudinaryService } from '../cloudinary/cloudinary.service.js';
 import { BrandsService } from '../brands/brands.service.js';
+import { DEFAULT_PRINTER_CATALOG } from './default-printer-catalog.js';
 
 @Injectable()
 export class PrinterCatalogService {
@@ -98,6 +99,16 @@ export class PrinterCatalogService {
 
     this.logger.log(`Bulk upsert: ${created} created, ${updated} updated`);
     return { created, updated, total: items.length };
+  }
+
+  /**
+   * Siembra/actualiza el catálogo con los modelos predefinidos (fuente única en
+   * `DEFAULT_PRINTER_CATALOG`). Upsert por marca+modelo, NO destructivo. Lo llama
+   * el botón admin "Cargar modelos predefinidos" (antes ese dataset se duplicaba
+   * en el front).
+   */
+  seedDefaults(): Promise<{ created: number; updated: number; total: number }> {
+    return this.bulkUpsert(DEFAULT_PRINTER_CATALOG);
   }
 
   async remove(id: string): Promise<{ message: string }> {

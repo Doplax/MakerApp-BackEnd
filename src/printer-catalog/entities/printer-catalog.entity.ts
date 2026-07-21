@@ -48,6 +48,20 @@ export class PrinterCatalog {
   @Column('int', { nullable: true })
   powerConsumption!: number;
 
+  // Ficha técnica (opcional): temperatura máx de extrusor/cama, velocidad máx y
+  // nº de extrusores/cabezales. Autorrellena el alta de impresora del usuario.
+  @Column('int', { nullable: true })
+  extruderMaxTemp!: number | null;
+
+  @Column('int', { nullable: true })
+  bedMaxTemp!: number | null;
+
+  @Column('int', { nullable: true })
+  maxSpeed!: number | null;
+
+  @Column('int', { nullable: true })
+  extruderCount!: number | null;
+
   @Column('decimal', { precision: 10, scale: 2, nullable: true })
   referencePrice!: number;
 

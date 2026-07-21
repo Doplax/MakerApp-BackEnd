@@ -38,6 +38,14 @@ export class PrinterCatalogController {
     return this.catalogService.bulkUpsert(body.items ?? []);
   }
 
+  /** Carga los modelos predefinidos (fuente única en el back). Upsert no destructivo. */
+  @Post('seed-defaults')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN)
+  seedDefaults() {
+    return this.catalogService.seedDefaults();
+  }
+
   @Get()
   findAll(@Query() filterDto: FilterPrinterCatalogDto) {
     return this.catalogService.findAll(filterDto);
