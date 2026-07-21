@@ -74,6 +74,15 @@ describe('AuthService', () => {
       );
     });
 
+    it('sin fullName deriva el nombre del email (el alta ya no lo pide)', async () => {
+      usersService.findByEmail.mockResolvedValue(null);
+      usersService.create.mockResolvedValue({ id: 'u1', email: 'laia.gomez@x.com', fullName: 'laia.gomez', role: 'user' });
+      await service.register({ email: 'laia.gomez@x.com', password: 'x' } as never);
+      expect(usersService.create).toHaveBeenCalledWith(
+        expect.objectContaining({ fullName: 'laia.gomez' }),
+      );
+    });
+
     it('accountType="maker" registra como MAKER', async () => {
       usersService.findByEmail.mockResolvedValue(null);
       usersService.create.mockResolvedValue({ id: 'u1', email: 'a@b.c', fullName: 'A', role: 'maker' });

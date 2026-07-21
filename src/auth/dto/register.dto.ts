@@ -10,10 +10,12 @@ import {
 } from 'class-validator';
 
 export class RegisterDto {
+  // Opcional desde jul-2026: el alta pide solo email+contraseña (el nombre se
+  // pone después en Ajustes). Si no llega, se deriva del email.
   @IsString()
-  @IsNotEmpty()
+  @IsOptional()
   @MaxLength(100)
-  fullName!: string;
+  fullName?: string;
 
   @IsEmail()
   @IsNotEmpty()

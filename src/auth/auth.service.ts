@@ -77,8 +77,14 @@ export class AuthService {
     const role =
       registerDto.accountType === 'maker' ? UserRole.MAKER : UserRole.USER;
 
+    // El alta ya no pide nombre (se pone en Ajustes): si no llega, se deriva
+    // del email ("laia.gomez@..." → "laia.gomez") para no dejarlo vacío.
+    const fullName =
+      registerDto.fullName?.trim() ||
+      registerDto.email.split('@')[0].slice(0, 100);
+
     const user = await this.usersService.create({
-      fullName: registerDto.fullName,
+      fullName,
       email: registerDto.email,
       password: registerDto.password,
       role,
