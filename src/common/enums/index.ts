@@ -37,5 +37,8 @@ export enum PrintStatus {
 
 export enum UserRole {
   ADMIN = 'admin',
+  // USER = cliente (limitado: mapa, chat, historial de compras).
   USER = 'user',
+  // MAKER = taller completo (impresoras, filamentos, proyectos, finanzas…).
+  MAKER = 'maker',
 }

@@ -14,6 +14,9 @@ import { CreatePaymentIntentDto } from './dto/create-payment-intent.dto.js';
 import { ConfirmPurchaseDto } from './dto/confirm-purchase.dto.js';
 import { AuthGuard } from '@nestjs/passport';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
+import { Roles } from '../common/decorators/roles.decorator.js';
+import { RolesGuard } from '../common/guards/roles.guard.js';
+import { UserRole } from '../common/enums/index.js';
 import { User } from '../users/entities/user.entity.js';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -34,7 +37,8 @@ export class StripeController {
   // ── Onboarding Connect ───────────────────────────────────────
 
   @Post('connect/onboard')
-  @UseGuards(AuthGuard('jwt'))
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(UserRole.MAKER, UserRole.ADMIN)
   async onboard(@CurrentUser() user: User) {
     // Reutiliza la cuenta Express existente del maker si ya la tiene: crear una
     // nueva en cada onboarding fugaría cuentas huérfanas y —al no persistirse—
@@ -60,7 +64,8 @@ export class StripeController {
   }
 
   @Get('connect/status')
-  @UseGuards(AuthGuard('jwt'))
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(UserRole.MAKER, UserRole.ADMIN)
   async status(@CurrentUser() user: User) {
     if (!this.stripeService.isConfigured() || !user.stripeAccountId) {
       return { connected: false };

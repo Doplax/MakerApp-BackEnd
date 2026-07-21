@@ -17,9 +17,13 @@ import { UpdatePrintLogDto } from './dto/update-print-log.dto.js';
 import { FilterPrintLogDto } from './dto/filter-print-log.dto.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { User } from '../users/entities/user.entity.js';
+import { RolesGuard } from '../common/guards/roles.guard.js';
+import { Roles } from '../common/decorators/roles.decorator.js';
+import { UserRole } from '../common/enums/index.js';
 
 @Controller('print-logs')
-@UseGuards(AuthGuard('jwt'))
+@UseGuards(AuthGuard('jwt'), RolesGuard)
+@Roles(UserRole.MAKER, UserRole.ADMIN)
 export class PrintLogsController {
   constructor(private readonly printLogsService: PrintLogsService) {}
 

@@ -15,10 +15,14 @@ import { CreateClientDto } from './dto/create-client.dto.js';
 import { UpdateClientDto } from './dto/update-client.dto.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { User } from '../users/entities/user.entity.js';
+import { RolesGuard } from '../common/guards/roles.guard.js';
+import { Roles } from '../common/decorators/roles.decorator.js';
+import { UserRole } from '../common/enums/index.js';
 
 /** Clientes del maker (mini-CRM). Todo scoped por el usuario autenticado. */
 @Controller('clients')
-@UseGuards(AuthGuard('jwt'))
+@UseGuards(AuthGuard('jwt'), RolesGuard)
+@Roles(UserRole.MAKER, UserRole.ADMIN)
 export class ClientsController {
   constructor(private readonly clients: ClientsService) {}
 

@@ -2,6 +2,9 @@ import { Controller, Get, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { PurchasesService } from './purchases.service.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
+import { Roles } from '../common/decorators/roles.decorator.js';
+import { RolesGuard } from '../common/guards/roles.guard.js';
+import { UserRole } from '../common/enums/index.js';
 import { User } from '../users/entities/user.entity.js';
 import { Purchase } from './entities/purchase.entity.js';
 
@@ -15,8 +18,10 @@ import { Purchase } from './entities/purchase.entity.js';
 export class PurchasesController {
   constructor(private readonly purchases: PurchasesService) {}
 
-  /** Ventas del maker autenticado. */
+  /** Ventas del maker autenticado (solo maker/admin; el cliente no vende). */
   @Get('sales')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.MAKER, UserRole.ADMIN)
   async sales(@CurrentUser() user: User) {
     const rows = await this.purchases.findSalesForMaker(user.id);
     return rows.map((p) => this.toSaleDto(p));

@@ -99,6 +99,21 @@ export class AuthController {
     return { authenticated: true, userId: user.id };
   }
 
+  /**
+   * Un CLIENTE se convierte en MAKER (self-service, "Crea tu taller"). Reemite la
+   * cookie con el rol nuevo para que el front lo refleje sin re-login.
+   */
+  @Post('upgrade-to-maker')
+  @UseGuards(AuthGuard('jwt'))
+  async upgradeToMaker(
+    @CurrentUser() user: User,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.authService.upgradeToMaker(user.id);
+    res.cookie(ACCESS_TOKEN_COOKIE, result.accessToken, accessTokenCookieOptions());
+    return { user: result.user };
+  }
+
   // ── Google OAuth ──────────────────────────────────────────
   @Get('google')
   @UseGuards(AuthGuard('google'))

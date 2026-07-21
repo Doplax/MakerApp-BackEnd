@@ -11,6 +11,7 @@ describe('AuthService', () => {
     findByEmail: jest.Mock;
     create: jest.Mock;
     setPasswordResetToken: jest.Mock;
+    upgradeToMaker: jest.Mock;
   };
   let jwt: { sign: jest.Mock };
   let mail: { sendWelcome: jest.Mock; sendPasswordReset: jest.Mock };
@@ -22,6 +23,7 @@ describe('AuthService', () => {
       findByEmail: jest.fn(),
       create: jest.fn(),
       setPasswordResetToken: jest.fn().mockResolvedValue(undefined),
+      upgradeToMaker: jest.fn(),
     };
     jwt = { sign: jest.fn().mockReturnValue('token') };
     mail = {
@@ -61,6 +63,34 @@ describe('AuthService', () => {
       await expect(
         service.register({ email: 'a@b.c', fullName: 'A', password: 'x' } as never),
       ).resolves.toBeDefined();
+    });
+
+    it('sin accountType registra como CLIENTE (role user)', async () => {
+      usersService.findByEmail.mockResolvedValue(null);
+      usersService.create.mockResolvedValue({ id: 'u1', email: 'a@b.c', fullName: 'A', role: 'user' });
+      await service.register({ email: 'a@b.c', fullName: 'A', password: 'x' } as never);
+      expect(usersService.create).toHaveBeenCalledWith(
+        expect.objectContaining({ role: 'user' }),
+      );
+    });
+
+    it('accountType="maker" registra como MAKER', async () => {
+      usersService.findByEmail.mockResolvedValue(null);
+      usersService.create.mockResolvedValue({ id: 'u1', email: 'a@b.c', fullName: 'A', role: 'maker' });
+      await service.register({ email: 'a@b.c', fullName: 'A', password: 'x', accountType: 'maker' } as never);
+      expect(usersService.create).toHaveBeenCalledWith(
+        expect.objectContaining({ role: 'maker' }),
+      );
+    });
+  });
+
+  describe('upgradeToMaker', () => {
+    it('devuelve el usuario actualizado y un token nuevo con el rol maker', async () => {
+      usersService.upgradeToMaker.mockResolvedValue({ id: 'u1', email: 'a@b.c', fullName: 'A', role: 'maker' });
+      const res = await service.upgradeToMaker('u1');
+      expect(usersService.upgradeToMaker).toHaveBeenCalledWith('u1');
+      expect(res.user.role).toBe('maker');
+      expect(res.accessToken).toBe('token');
     });
   });
 

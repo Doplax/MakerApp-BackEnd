@@ -1,6 +1,8 @@
 import {
   IsEmail,
+  IsIn,
   IsNotEmpty,
+  IsOptional,
   IsString,
   Matches,
   MaxLength,
@@ -26,4 +28,10 @@ export class RegisterDto {
     message: 'La contraseña debe tener al menos una letra y un número',
   })
   password!: string;
+
+  // Tipo de cuenta elegido en el registro. Solo 'user' (cliente) o 'maker'
+  // (taller) — NUNCA 'admin'. Por defecto cliente si no se envía.
+  @IsIn(['user', 'maker'])
+  @IsOptional()
+  accountType?: 'user' | 'maker';
 }

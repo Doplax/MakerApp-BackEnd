@@ -43,6 +43,30 @@ describe('UsersService', () => {
     );
   });
 
+  describe('upgradeToMaker — cliente se convierte en maker (self-service)', () => {
+    it('un cliente (role user) pasa a maker y se guarda', async () => {
+      userRepo.findOne.mockResolvedValue({ id: 'u1', role: 'user' });
+      const result = await service.upgradeToMaker('u1');
+      expect(result.role).toBe('maker');
+      expect(userRepo.save).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'u1', role: 'maker' }),
+      );
+    });
+
+    it('NO degrada un admin (idempotente / sin tocar)', async () => {
+      userRepo.findOne.mockResolvedValue({ id: 'a1', role: 'admin' });
+      const result = await service.upgradeToMaker('a1');
+      expect(result.role).toBe('admin');
+      expect(userRepo.save).not.toHaveBeenCalled();
+    });
+
+    it('un maker ya existente no se re-guarda (idempotente)', async () => {
+      userRepo.findOne.mockResolvedValue({ id: 'm1', role: 'maker' });
+      await service.upgradeToMaker('m1');
+      expect(userRepo.save).not.toHaveBeenCalled();
+    });
+  });
+
   describe('updateProfile — guardas de proyecto destacado (anti-IDOR)', () => {
     it('rechaza destacar un proyecto que no pertenece al usuario', async () => {
       userRepo.findOne.mockResolvedValue({ id: 'u1', avatarUrl: null, invoiceLogoUrl: null });

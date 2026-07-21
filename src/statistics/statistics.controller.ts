@@ -12,12 +12,17 @@ import { User } from '../users/entities/user.entity.js';
 export class StatisticsController {
   constructor(private readonly statisticsService: StatisticsService) {}
 
+  // Estadísticas del taller (dashboard del maker) → solo maker/admin.
   @Get('dashboard')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.MAKER, UserRole.ADMIN)
   getDashboardStats(@CurrentUser() user: User) {
     return this.statisticsService.getDashboardStats(user);
   }
 
   @Get('monthly-activity')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.MAKER, UserRole.ADMIN)
   getMonthlyActivity(@CurrentUser() user: User) {
     return this.statisticsService.getMonthlyActivity(user);
   }

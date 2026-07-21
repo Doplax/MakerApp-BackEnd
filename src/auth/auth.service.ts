@@ -13,6 +13,7 @@ import { RegisterDto } from './dto/register.dto.js';
 import { ForgotPasswordDto } from './dto/forgot-password.dto.js';
 import { ResetPasswordDto } from './dto/reset-password.dto.js';
 import { UpdateProfileDto } from '../users/dto/update-profile.dto.js';
+import { UserRole } from '../common/enums/index.js';
 import { ChangePasswordDto } from '../users/dto/change-password.dto.js';
 import { User } from '../users/entities/user.entity.js';
 
@@ -71,10 +72,16 @@ export class AuthService {
       throw new BadRequestException('Email already registered');
     }
 
+    // Tipo de cuenta: 'maker' (taller) o cliente por defecto. El DTO ya limita
+    // accountType a user|maker (nunca admin), así que el mapeo es seguro.
+    const role =
+      registerDto.accountType === 'maker' ? UserRole.MAKER : UserRole.USER;
+
     const user = await this.usersService.create({
       fullName: registerDto.fullName,
       email: registerDto.email,
       password: registerDto.password,
+      role,
     });
 
     this.logger.log(`User registered: ${user.email}`);
@@ -88,6 +95,25 @@ export class AuthService {
 
     const payload = { sub: user.id, email: user.email, role: user.role };
 
+    return {
+      user: {
+        id: user.id,
+        fullName: user.fullName,
+        email: user.email,
+        role: user.role,
+      },
+      accessToken: this.jwtService.sign(payload),
+    };
+  }
+
+  /**
+   * Convierte un CLIENTE en MAKER (self-service). Solo aplica a `user`; nunca
+   * degrada un admin. Devuelve el usuario actualizado y un token nuevo con el
+   * rol maker (para reemitir la cookie).
+   */
+  async upgradeToMaker(userId: string) {
+    const user = await this.usersService.upgradeToMaker(userId);
+    const payload = { sub: user.id, email: user.email, role: user.role };
     return {
       user: {
         id: user.id,

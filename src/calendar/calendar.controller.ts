@@ -15,10 +15,14 @@ import { CreateCalendarEventDto } from './dto/create-calendar-event.dto.js';
 import { UpdateCalendarEventDto } from './dto/update-calendar-event.dto.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { User } from '../users/entities/user.entity.js';
+import { RolesGuard } from '../common/guards/roles.guard.js';
+import { Roles } from '../common/decorators/roles.decorator.js';
+import { UserRole } from '../common/enums/index.js';
 
 /** Calendario del maker. Todo scoped por el usuario autenticado. */
 @Controller('calendar-events')
-@UseGuards(AuthGuard('jwt'))
+@UseGuards(AuthGuard('jwt'), RolesGuard)
+@Roles(UserRole.MAKER, UserRole.ADMIN)
 export class CalendarController {
   constructor(private readonly calendar: CalendarService) {}
 

@@ -71,6 +71,21 @@ export class UsersService {
     return user;
   }
 
+  /**
+   * Convierte un CLIENTE (`user`) en MAKER (self-service, "Crea tu taller").
+   * Solo aplica al rol `user`: un admin no se toca (no reutilizamos `update()`
+   * administrativo para no arrastrar las guardas anti-lockout ni permitir setear
+   * un rol arbitrario). Idempotente si ya es maker.
+   */
+  async upgradeToMaker(userId: string): Promise<User> {
+    const user = await this.findOne(userId);
+    if (user.role === UserRole.USER) {
+      user.role = UserRole.MAKER;
+      await this.userRepository.save(user);
+    }
+    return user;
+  }
+
   async findByEmail(email: string): Promise<User | null> {
     return this.userRepository.findOne({
       where: { email: email.toLowerCase() },
@@ -383,6 +398,11 @@ export class UsersService {
         'u.isAvailable',
       ])
       .where('u.isActive = :active', { active: true })
+      // Solo makers/admin en el mapa: un cliente (rol 'user') no es un taller
+      // aunque tenga coordenadas, así que no debe aparecer.
+      .andWhere('u.role IN (:...roles)', {
+        roles: [UserRole.MAKER, UserRole.ADMIN],
+      })
       .andWhere('u.latitude IS NOT NULL')
       .andWhere('u.longitude IS NOT NULL')
       .getMany();
@@ -443,6 +463,7 @@ export class UsersService {
       relations: ['printers', 'projects'],
       select: [
         'id',
+        'role',
         'fullName',
         'avatarUrl',
         'bio',
@@ -460,7 +481,8 @@ export class UsersService {
       ],
     });
 
-    if (!user) {
+    // Un cliente (rol 'user') no tiene perfil público de maker → 404.
+    if (!user || user.role === UserRole.USER) {
       throw new NotFoundException(`User with ID ${id} not found`);
     }
 

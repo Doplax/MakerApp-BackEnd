@@ -17,9 +17,13 @@ import { UpdateProjectDto } from './dto/update-project.dto.js';
 import { FindProjectsQueryDto } from './dto/find-projects-query.dto.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { User } from '../users/entities/user.entity.js';
+import { RolesGuard } from '../common/guards/roles.guard.js';
+import { Roles } from '../common/decorators/roles.decorator.js';
+import { UserRole } from '../common/enums/index.js';
 
 @Controller('projects')
-@UseGuards(AuthGuard('jwt'))
+@UseGuards(AuthGuard('jwt'), RolesGuard)
+@Roles(UserRole.MAKER, UserRole.ADMIN)
 export class ProjectsController {
   constructor(private readonly projectsService: ProjectsService) {}
 
