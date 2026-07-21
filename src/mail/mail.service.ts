@@ -64,15 +64,26 @@ export class MailService {
     );
 
     // Flag explícito (MAIL_ENABLED) manda; si no, activo solo en producción.
-    const explicit = config.get<string>('MAIL_ENABLED');
+    // Tolerante con las formas habituales de "sí" (true/1/yes/on): un operador
+    // que ponga MAIL_ENABLED=1 en el VPS no debe APAGAR el correo sin querer.
+    const explicit = config.get<string>('MAIL_ENABLED')?.trim().toLowerCase();
+    const isProd = config.get<string>('NODE_ENV') === 'production';
     this.mailEnabled =
-      explicit != null
-        ? explicit.toLowerCase() === 'true'
-        : config.get<string>('NODE_ENV') === 'production';
+      explicit != null && explicit !== ''
+        ? ['true', '1', 'yes', 'on'].includes(explicit)
+        : isProd;
     if (!this.mailEnabled) {
-      this.logger.log(
-        'Envío de correos DESACTIVADO (entorno de pruebas). Actívalo con MAIL_ENABLED=true o NODE_ENV=production.',
-      );
+      if (isProd) {
+        // En producción sin correo se pierden reseteos de contraseña y avisos:
+        // que quede bien visible en el log.
+        this.logger.warn(
+          `⚠️ PRODUCCIÓN con envío de correos DESACTIVADO (MAIL_ENABLED="${explicit}"). Reset de contraseña y avisos NO se enviarán.`,
+        );
+      } else {
+        this.logger.log(
+          'Envío de correos DESACTIVADO (entorno de pruebas). Actívalo con MAIL_ENABLED=true o NODE_ENV=production.',
+        );
+      }
     }
 
     this.transporter = nodemailer.createTransport({

@@ -10,6 +10,7 @@ import { Follow } from './entities/follow.entity.js';
 import { User } from '../users/entities/user.entity.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { NotificationType } from '../notifications/enums/notification-type.enum.js';
+import { UserRole } from '../common/enums/index.js';
 
 @Injectable()
 export class FollowsService {
@@ -60,11 +61,15 @@ export class FollowsService {
         where: { id: followerId },
       });
       const name = follower?.fullName ?? 'Alguien';
+      // Un CLIENTE no tiene perfil público de maker → sin link (evita un 404
+      // al tocar la notificación). Solo enlazamos si el seguidor es maker/admin.
+      const hasPublicProfile =
+        follower != null && follower.role !== UserRole.USER;
       await this.notifications.create(followingId, {
         type: NotificationType.FOLLOW_RECEIVED,
         title: 'Tienes un nuevo seguidor',
         body: `${name} ha empezado a seguirte.`,
-        link: `/public/maker/${followerId}`,
+        ...(hasPublicProfile ? { link: `/public/maker/${followerId}` } : {}),
         data: { followerId, followerName: name },
         dedupeKey: `follow:${followerId}:${followingId}`,
       });
@@ -113,6 +118,7 @@ export class FollowsService {
       fullName: string;
       avatarUrl: string | null;
       location: string | null;
+      hasPublicProfile: boolean;
     }[]
   > {
     const follows = await this.followRepo.find({
@@ -126,6 +132,7 @@ export class FollowsService {
       fullName: f.following.fullName,
       avatarUrl: f.following.avatarUrl ?? null,
       location: f.following.location ?? null,
+      hasPublicProfile: f.following.role !== UserRole.USER,
     }));
   }
 
@@ -137,6 +144,8 @@ export class FollowsService {
       fullName: string;
       avatarUrl: string | null;
       location: string | null;
+      // Un seguidor CLIENTE no tiene perfil público → el front no debe enlazarlo.
+      hasPublicProfile: boolean;
     }[]
   > {
     const follows = await this.followRepo.find({
@@ -150,6 +159,7 @@ export class FollowsService {
       fullName: f.follower.fullName,
       avatarUrl: f.follower.avatarUrl ?? null,
       location: f.follower.location ?? null,
+      hasPublicProfile: f.follower.role !== UserRole.USER,
     }));
   }
 

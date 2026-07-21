@@ -434,7 +434,24 @@ export class UsersService {
    * Obtiene el perfil público de un usuario (maker)
    * Carga solo información pública y relaciones públicas (printers, projects)
    */
+  /**
+   * Garantiza que `id` es un usuario con perfil público de maker (maker/admin).
+   * Un CLIENTE (o un maker degradado a cliente por el admin) no debe exponer
+   * NADA por los endpoints públicos: sin esto, sus proyectos seguirían
+   * accesibles (y comprables) por URL directa aunque su perfil dé 404.
+   */
+  private async assertMakerVisible(id: string): Promise<void> {
+    const user = await this.userRepository.findOne({
+      where: { id },
+      select: ['id', 'role'],
+    });
+    if (!user || user.role === UserRole.USER) {
+      throw new NotFoundException(`User with ID ${id} not found`);
+    }
+  }
+
   async findPublicFilaments(makerId: string) {
+    await this.assertMakerVisible(makerId);
     // Consultamos los filamentos directamente por createdBy + isPublic, igual
     // que el contador de findPublicProfile. Antes se cargaba la relación
     // user.filaments y se filtraba en memoria, lo que podía devolver vacío
@@ -580,7 +597,10 @@ export class UsersService {
       where: { id: makerId },
       relations: ['projects'],
     });
-    if (!user) throw new NotFoundException(`Maker with ID ${makerId} not found`);
+    // Un cliente no tiene proyectos públicos de maker (ver assertMakerVisible).
+    if (!user || user.role === UserRole.USER) {
+      throw new NotFoundException(`Maker with ID ${makerId} not found`);
+    }
 
     return (user.projects || [])
       .filter((p) => p.isPublic)
@@ -601,7 +621,10 @@ export class UsersService {
       where: { id: makerId },
       relations: ['projects', 'projects.filaments'],
     });
-    if (!user) throw new NotFoundException(`Maker with ID ${makerId} not found`);
+    // Un cliente no expone proyectos comprables (ver assertMakerVisible).
+    if (!user || user.role === UserRole.USER) {
+      throw new NotFoundException(`Maker with ID ${makerId} not found`);
+    }
 
     const project = (user.projects || []).find(
       (p) => p.id === projectId && p.isPublic,
