@@ -11,6 +11,7 @@ import { ConversationParticipant } from './entities/conversation-participant.ent
 import { Message, MessageAttachment } from './entities/message.entity.js';
 import { User } from '../users/entities/user.entity.js';
 import { Project } from '../projects/entities/project.entity.js';
+import { UserRole } from '../common/enums/index.js';
 import { ChatGateway } from './chat.gateway.js';
 
 /** Referencia (mínima) que el cliente adjunta; el snapshot se deriva en servidor. */
@@ -25,6 +26,9 @@ export interface ConversationSummary {
     id: string;
     fullName: string;
     avatarUrl: string | null;
+    // false = CLIENTE (sin perfil público de maker): el front no debe enlazar
+    // su cabecera a /public/maker/:id (daría 404).
+    hasPublicProfile: boolean;
   };
   lastMessage: {
     body: string;
@@ -211,6 +215,7 @@ export class ChatService {
           id: other.id,
           fullName: other.fullName,
           avatarUrl: other.avatarUrl ?? null,
+          hasPublicProfile: other.role !== UserRole.USER,
         },
         lastMessage: lastMessage
           ? {
@@ -256,6 +261,7 @@ export class ChatService {
         id: other.id,
         fullName: other.fullName,
         avatarUrl: other.avatarUrl ?? null,
+        hasPublicProfile: other.role !== UserRole.USER,
       },
       lastMessage: lastMessage
         ? {
