@@ -218,6 +218,8 @@ export class AuthService {
     email: string;
     fullName: string;
     avatarUrl?: string;
+    /** Tipo de cuenta elegido en el registro (state del OAuth): user|maker. */
+    intent?: 'user' | 'maker';
   }): Promise<User> {
     return this.usersService.findOrCreateGoogleUser(profile);
   }

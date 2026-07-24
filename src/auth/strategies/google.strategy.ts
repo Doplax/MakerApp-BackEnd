@@ -18,12 +18,15 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
       clientSecret,
       callbackURL,
       scope: ['email', 'profile'],
+      // Necesario para leer el `state` (intent cliente/taller) en el callback.
+      passReqToCallback: true,
     });
 
     this.authService = authService;
   }
 
   async validate(
+    req: { query?: { state?: string } },
     accessToken: string,
     refreshToken: string,
     profile: {
@@ -36,11 +39,17 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
   ): Promise<void> {
     const { id, emails, displayName, photos } = profile;
 
+    // El tipo de cuenta elegido en el registro viaja como `state` del OAuth
+    // (lo pone GoogleAuthGuard). Solo aplica al CREAR la cuenta; nunca admin.
+    const state = req?.query?.state;
+    const intent = state === 'maker' || state === 'user' ? state : undefined;
+
     const user = await this.authService.validateGoogleUser({
       googleId: id,
       email: emails?.[0]?.value || '',
       fullName: displayName || '',
       avatarUrl: photos?.[0]?.value || undefined,
+      intent,
     });
 
     done(null, user);

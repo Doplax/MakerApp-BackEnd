@@ -68,6 +68,42 @@ describe('UsersService', () => {
     });
   });
 
+  describe('findOrCreateGoogleUser — intent del registro (cliente/taller)', () => {
+    it('con intent "maker" la cuenta NUEVA se crea como maker', async () => {
+      userRepo.findOne.mockResolvedValue(null); // ni por googleId ni por email
+      await service.findOrCreateGoogleUser({
+        googleId: 'g1', email: 'nuevo@x.com', fullName: 'Nuevo', intent: 'maker',
+      });
+      expect(userRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({ role: 'maker' }),
+      );
+    });
+
+    it('sin intent la cuenta nueva es CLIENTE (user)', async () => {
+      userRepo.findOne.mockResolvedValue(null);
+      await service.findOrCreateGoogleUser({
+        googleId: 'g2', email: 'nuevo2@x.com', fullName: 'Nuevo2',
+      });
+      expect(userRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({ role: 'user' }),
+      );
+    });
+
+    it('a un usuario EXISTENTE (enlace por email) no se le toca el rol', async () => {
+      // findByGoogleId → null; por email → maker existente.
+      userRepo.findOne
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce({ id: 'm1', email: 'ya@x.com', role: 'maker', googleId: null });
+      await service.findOrCreateGoogleUser({
+        googleId: 'g3', email: 'ya@x.com', fullName: 'Ya', intent: 'user',
+      });
+      expect(userRepo.create).not.toHaveBeenCalled();
+      expect(userRepo.save).toHaveBeenCalledWith(
+        expect.objectContaining({ role: 'maker', googleId: 'g3' }),
+      );
+    });
+  });
+
   describe('updateProfile — guardas de proyecto destacado (anti-IDOR)', () => {
     it('rechaza destacar un proyecto que no pertenece al usuario', async () => {
       userRepo.findOne.mockResolvedValue({ id: 'u1', avatarUrl: null, invoiceLogoUrl: null });

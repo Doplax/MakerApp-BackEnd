@@ -110,6 +110,8 @@ export class UsersService {
     email: string;
     fullName: string;
     avatarUrl?: string;
+    /** Tipo de cuenta elegido en el registro; solo aplica al CREAR. */
+    intent?: 'user' | 'maker';
   }): Promise<User> {
     // 1. Check if user already linked by googleId
     let user = await this.findByGoogleId(profile.googleId);
@@ -128,12 +130,15 @@ export class UsersService {
       return this.userRepository.save(user);
     }
 
-    // 3. Create new user (no password needed for Google users)
+    // 3. Create new user (no password needed for Google users). El intent del
+    // registro decide cliente/maker; sin intent → cliente (default). NUNCA admin,
+    // y a un usuario existente jamás se le toca el rol por esta vía.
     const newUser = this.userRepository.create({
       googleId: profile.googleId,
       email: profile.email.toLowerCase(),
       fullName: profile.fullName,
       avatarUrl: profile.avatarUrl,
+      role: profile.intent === 'maker' ? UserRole.MAKER : UserRole.USER,
     });
 
     const saved = await this.userRepository.save(newUser);

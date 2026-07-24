@@ -19,6 +19,7 @@ import { ResetPasswordDto } from './dto/reset-password.dto.js';
 import { UpdateProfileDto } from '../users/dto/update-profile.dto.js';
 import { ChangePasswordDto } from '../users/dto/change-password.dto.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
+import { GoogleAuthGuard } from './guards/google-auth.guard.js';
 import { User } from '../users/entities/user.entity.js';
 import {
   ACCESS_TOKEN_COOKIE,
@@ -115,8 +116,10 @@ export class AuthController {
   }
 
   // ── Google OAuth ──────────────────────────────────────────
+  // GoogleAuthGuard propaga `?intent=maker|user` (tarjeta elegida en el
+  // registro) como state del OAuth; la estrategia lo aplica solo al crear.
   @Get('google')
-  @UseGuards(AuthGuard('google'))
+  @UseGuards(GoogleAuthGuard)
   googleAuth() {
     // Passport redirige a Google automáticamente
   }
