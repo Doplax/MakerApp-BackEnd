@@ -15,3 +15,15 @@ export class GoogleAuthGuard extends AuthGuard('google') {
     return intent === 'maker' || intent === 'user' ? { state: intent } : {};
   }
 }
+
+/**
+ * Arranque del OAuth en modo VINCULAR (botón de Ajustes): `state='link'` hace
+ * que la estrategia devuelva el perfil sin buscar/crear usuario y el callback
+ * lo asocie a la sesión actual (cookie httpOnly, mismo host → viaja).
+ */
+@Injectable()
+export class GoogleLinkGuard extends AuthGuard('google') {
+  override getAuthenticateOptions() {
+    return { state: 'link' };
+  }
+}

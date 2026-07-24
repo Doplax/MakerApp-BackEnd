@@ -19,7 +19,7 @@ import { ResetPasswordDto } from './dto/reset-password.dto.js';
 import { UpdateProfileDto } from '../users/dto/update-profile.dto.js';
 import { ChangePasswordDto } from '../users/dto/change-password.dto.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
-import { GoogleAuthGuard } from './guards/google-auth.guard.js';
+import { GoogleAuthGuard, GoogleLinkGuard } from './guards/google-auth.guard.js';
 import { User } from '../users/entities/user.entity.js';
 import {
   ACCESS_TOKEN_COOKIE,
@@ -124,13 +124,57 @@ export class AuthController {
     // Passport redirige a Google automáticamente
   }
 
+  /**
+   * Arranque del OAuth en modo VINCULAR (Ajustes → "Vincular con Google").
+   * `state='link'`: el callback asociará el Google al usuario logueado.
+   */
+  @Get('google/link')
+  @UseGuards(GoogleLinkGuard)
+  googleLink() {
+    // Passport redirige a Google automáticamente
+  }
+
   @Get('google/callback')
   @UseGuards(AuthGuard('google'))
-  googleCallback(@Request() req: { user: User }, @Res() res: Response) {
-    const result = this.authService.googleLogin(req.user);
+  async googleCallback(
+    @Request()
+    req: {
+      user: User | { linkProfile: { googleId: string; email: string } };
+      cookies?: Record<string, string>;
+    },
+    @Res() res: Response,
+  ) {
     const frontendUrl =
       this.configService.get<string>('FRONTEND_URL') || 'http://localhost:4210';
 
+    // ── Modo VINCULAR: asociar el Google a la sesión actual (cookie) ──
+    if ('linkProfile' in req.user) {
+      const sessionUser = await this.authService.getUserFromSessionCookie(
+        req,
+        ACCESS_TOKEN_COOKIE,
+      );
+      if (!sessionUser) {
+        // Sin sesión no hay a quién vincular: al login y de vuelta a Ajustes.
+        res.redirect(
+          `${frontendUrl}/auth/login?returnUrl=${encodeURIComponent('/home/settings')}`,
+        );
+        return;
+      }
+      try {
+        await this.authService.linkGoogleAccount(
+          sessionUser.id,
+          req.user.linkProfile,
+        );
+        res.redirect(`${frontendUrl}/home/settings?google=linked`);
+      } catch {
+        // Conflicto: ese Google ya pertenece a otra cuenta.
+        res.redirect(`${frontendUrl}/home/settings?google=conflict`);
+      }
+      return;
+    }
+
+    // ── Modo LOGIN/REGISTRO (flujo original) ──
+    const result = this.authService.googleLogin(req.user);
     // Sesión por cookie httpOnly (NO exponer el token en la URL de redirect).
     res.cookie(ACCESS_TOKEN_COOKIE, result.accessToken, accessTokenCookieOptions());
     res.redirect(`${frontendUrl}/auth/google-callback`);

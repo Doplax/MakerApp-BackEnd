@@ -224,6 +224,34 @@ export class AuthService {
     return this.usersService.findOrCreateGoogleUser(profile);
   }
 
+  /**
+   * Resuelve el usuario logueado desde la cookie de sesión (para el callback
+   * del modo VINCULAR, donde passport trae el perfil de Google, no la sesión).
+   * Devuelve null si no hay cookie o el token no es válido.
+   */
+  async getUserFromSessionCookie(
+    req: { cookies?: Record<string, string> },
+    cookieName: string,
+  ): Promise<User | null> {
+    const token = req.cookies?.[cookieName];
+    if (!token) return null;
+    try {
+      const payload = this.jwtService.verify<{ sub: string }>(token);
+      const user = await this.usersService.findOne(payload.sub);
+      return user?.isActive ? user : null;
+    } catch {
+      return null;
+    }
+  }
+
+  /** Vincula el Google recibido en el callback al usuario logueado (Ajustes). */
+  async linkGoogleAccount(
+    userId: string,
+    profile: { googleId: string; email: string },
+  ): Promise<User> {
+    return this.usersService.linkGoogleAccount(userId, profile);
+  }
+
   googleLogin(user: User) {
     const payload = { sub: user.id, email: user.email, role: user.role };
     this.logger.log(`Google login: ${user.email}`);

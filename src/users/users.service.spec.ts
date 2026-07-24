@@ -1,4 +1,4 @@
-import { BadRequestException, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, ConflictException, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { UserRole } from '../common/enums/index.js';
 
@@ -101,6 +101,36 @@ describe('UsersService', () => {
       expect(userRepo.save).toHaveBeenCalledWith(
         expect.objectContaining({ role: 'maker', googleId: 'g3' }),
       );
+    });
+  });
+
+  describe('linkGoogleAccount — vincular Google desde Ajustes', () => {
+    it('vincula googleId y googleEmail al usuario logueado', async () => {
+      // findByGoogleId → nadie lo usa; findOne → el usuario actual.
+      userRepo.findOne
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce({ id: 'u1', email: 'yo@makerup.app', role: 'maker' });
+      await service.linkGoogleAccount('u1', { googleId: 'g9', email: 'Yo@Gmail.com' });
+      expect(userRepo.save).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'u1', googleId: 'g9', googleEmail: 'yo@gmail.com' }),
+      );
+    });
+
+    it('CONFLICTO si ese Google ya pertenece a otra cuenta (no se roba)', async () => {
+      userRepo.findOne.mockResolvedValueOnce({ id: 'OTRO', googleId: 'g9' });
+      await expect(
+        service.linkGoogleAccount('u1', { googleId: 'g9', email: 'x@gmail.com' }),
+      ).rejects.toBeInstanceOf(ConflictException);
+      expect(userRepo.save).not.toHaveBeenCalled();
+    });
+
+    it('re-vincular el MISMO Google a su propia cuenta es idempotente (no lanza)', async () => {
+      userRepo.findOne
+        .mockResolvedValueOnce({ id: 'u1', googleId: 'g9' })
+        .mockResolvedValueOnce({ id: 'u1', email: 'yo@makerup.app' });
+      await expect(
+        service.linkGoogleAccount('u1', { googleId: 'g9', email: 'yo@gmail.com' }),
+      ).resolves.toBeDefined();
     });
   });
 

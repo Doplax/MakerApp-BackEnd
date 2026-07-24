@@ -42,6 +42,10 @@ export class User {
   @Column({ nullable: true, unique: true })
   googleId!: string;
 
+  /** Email de la cuenta de Google vinculada (para mostrarlo en Ajustes). */
+  @Column({ nullable: true, type: 'varchar' })
+  googleEmail!: string | null;
+
   @Column({ type: 'enum', enum: UserRole, default: UserRole.USER })
   role!: UserRole;
 

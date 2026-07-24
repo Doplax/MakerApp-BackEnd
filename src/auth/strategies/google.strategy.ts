@@ -42,6 +42,20 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
     // El tipo de cuenta elegido en el registro viaja como `state` del OAuth
     // (lo pone GoogleAuthGuard). Solo aplica al CREAR la cuenta; nunca admin.
     const state = req?.query?.state;
+
+    // Modo VINCULAR (botón de Ajustes): aquí NO se busca/crea usuario — se
+    // devuelve el perfil de Google tal cual y el callback lo asocia al usuario
+    // logueado (identificado por su cookie de sesión).
+    if (state === 'link') {
+      done(null, {
+        linkProfile: {
+          googleId: id,
+          email: emails?.[0]?.value || '',
+        },
+      });
+      return;
+    }
+
     const intent = state === 'maker' || state === 'user' ? state : undefined;
 
     const user = await this.authService.validateGoogleUser({

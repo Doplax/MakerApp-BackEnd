@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  ConflictException,
   UnauthorizedException,
   Logger,
   Inject,
@@ -124,6 +125,7 @@ export class UsersService {
 
     if (user) {
       user.googleId = profile.googleId;
+      user.googleEmail = profile.email.toLowerCase();
       if (!user.avatarUrl && profile.avatarUrl) {
         user.avatarUrl = profile.avatarUrl;
       }
@@ -135,6 +137,7 @@ export class UsersService {
     // y a un usuario existente jamás se le toca el rol por esta vía.
     const newUser = this.userRepository.create({
       googleId: profile.googleId,
+      googleEmail: profile.email.toLowerCase(),
       email: profile.email.toLowerCase(),
       fullName: profile.fullName,
       avatarUrl: profile.avatarUrl,
@@ -143,6 +146,31 @@ export class UsersService {
 
     const saved = await this.userRepository.save(newUser);
     this.logger.log(`Google user created: ${saved.email}`);
+    return saved;
+  }
+
+  /**
+   * Vincula una cuenta de Google al usuario YA LOGUEADO (botón de Ajustes).
+   * Cubre el caso de emails distintos (el mismo email se auto-vincula en el
+   * login). Si ese Google ya pertenece a OTRA cuenta → ConflictException
+   * (nunca se "roba" una identidad ya usada). No toca rol ni email.
+   */
+  async linkGoogleAccount(
+    userId: string,
+    profile: { googleId: string; email: string },
+  ): Promise<User> {
+    const existing = await this.findByGoogleId(profile.googleId);
+    if (existing && existing.id !== userId) {
+      throw new ConflictException(
+        'Esa cuenta de Google ya está vinculada a otro usuario',
+      );
+    }
+    const user = await this.findOne(userId);
+    if (!user) throw new NotFoundException('Usuario no encontrado');
+    user.googleId = profile.googleId;
+    user.googleEmail = profile.email.toLowerCase();
+    const saved = await this.userRepository.save(user);
+    this.logger.log(`Google vinculado a ${saved.email} (${profile.email})`);
     return saved;
   }
 
