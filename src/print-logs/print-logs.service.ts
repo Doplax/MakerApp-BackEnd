@@ -36,6 +36,29 @@ export class PrintLogsService {
     private readonly cloudinary: CloudinaryService,
   ) {}
 
+  /**
+   * Guard anti-IDOR: el proyecto/impresora referenciado debe existir y ser DEL
+   * usuario. Sin esto, un id ajeno anidaría la impresión en el kanban de otra
+   * persona (el listado de proyectos carga `project.printLogs` completo).
+   */
+  private async assertOwnership(
+    table: 'projects' | 'printers',
+    id: string,
+    user: User,
+  ): Promise<void> {
+    const row: { id: string } | undefined = await this.printLogRepository.manager
+      .createQueryBuilder()
+      .select('t.id', 'id')
+      .from(table, 't')
+      .where('t.id = :id AND t."createdById" = :userId', { id, userId: user.id })
+      .getRawOne();
+    if (!row) {
+      throw new BadRequestException(
+        table === 'projects' ? 'Invalid project' : 'Invalid printer',
+      );
+    }
+  }
+
   async create(
     createPrintLogDto: CreatePrintLogDto,
     user: User,
@@ -44,6 +67,8 @@ export class PrintLogsService {
 
     // Verificar que el filamento existe y pertenece al usuario
     const filament = await this.filamentsService.findOne(filamentId, user);
+    if (projectId) await this.assertOwnership('projects', projectId, user);
+    if (printerId) await this.assertOwnership('printers', printerId, user);
 
     if (filament.remainingWeight < createPrintLogDto.weightUsed) {
       throw new BadRequestException(
@@ -158,6 +183,12 @@ export class PrintLogsService {
     const printLog = await this.findOne(id, user);
     const oldImageUrl = printLog.imageUrl;
     const { filamentId, printerId, projectId, ...logData } = updatePrintLogDto;
+
+    // Mismo guard anti-IDOR que en create (reasignar a un proyecto/impresora/
+    // filamento ajeno; el filamento además sufriría ajustes de stock).
+    if (projectId) await this.assertOwnership('projects', projectId, user);
+    if (printerId) await this.assertOwnership('printers', printerId, user);
+    if (filamentId) await this.filamentsService.findOne(filamentId, user);
 
     // Si cambió el peso, ajustar el filamento
     if (

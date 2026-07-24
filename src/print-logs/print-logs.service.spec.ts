@@ -65,3 +65,63 @@ describe('PrintLogsService — limpiar del kanban (dismissDelivered)', () => {
     expect(qb.execute).not.toHaveBeenCalled();
   });
 });
+
+describe('PrintLogsService — guard anti-IDOR de create (proyecto/impresora ajenos)', () => {
+  const user = { id: 'u1' } as User;
+
+  /** Repo cuyo manager NO encuentra la fila (proyecto/impresora ajenos). */
+  function repoWithManagerReturning(row: unknown) {
+    const managerQb = {
+      select: jest.fn().mockReturnThis(),
+      from: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      getRawOne: jest.fn().mockResolvedValue(row),
+    };
+    return {
+      manager: { createQueryBuilder: jest.fn(() => managerQb) },
+      create: jest.fn((x: unknown) => x),
+      save: jest.fn(async (x: unknown) => x),
+    };
+  }
+
+  it('rechaza crear una impresión anidada en un proyecto AJENO', async () => {
+    const repo = repoWithManagerReturning(undefined);
+    const filaments = {
+      findOne: jest.fn().mockResolvedValue({ id: 'f1', remainingWeight: 100 }),
+    };
+    const service = new PrintLogsService(
+      repo as never,
+      filaments as never,
+      {} as never,
+    );
+
+    await expect(
+      service.create(
+        { name: 'x', weightUsed: 10, filamentId: 'f1', projectId: 'proyecto-de-otro' } as never,
+        user,
+      ),
+    ).rejects.toThrow('Invalid project');
+    expect(repo.save).not.toHaveBeenCalled();
+  });
+
+  it('acepta el proyecto cuando SÍ es del usuario (el guard consulta con su id)', async () => {
+    const repo = repoWithManagerReturning({ id: 'p1' });
+    const filaments = {
+      findOne: jest.fn().mockResolvedValue({ id: 'f1', remainingWeight: 100 }),
+      deductWeight: jest.fn().mockResolvedValue(undefined),
+    };
+    const service = new PrintLogsService(
+      repo as never,
+      filaments as never,
+      {} as never,
+    );
+    // findOne final del create: devuelve el guardado.
+    jest.spyOn(service, 'findOne').mockResolvedValue({ id: 'log1' } as never);
+
+    await service.create(
+      { name: 'x', weightUsed: 10, filamentId: 'f1', projectId: 'p1' } as never,
+      user,
+    );
+    expect(repo.save).toHaveBeenCalled();
+  });
+});
