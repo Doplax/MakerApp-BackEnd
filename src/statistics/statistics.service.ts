@@ -186,13 +186,17 @@ export class StatisticsService {
 
       // Distribución por estado de impresión (columnas del kanban de Proyectos:
       // pending=Presupuestado, in_progress=En producción, completed=Pendiente envío).
-      // Las completadas "limpiadas" del tablero (dismissedAt) NO cuentan: el chip
-      // ENVÍO del dashboard debe coincidir con lo que se ve en la columna.
+      // Los chips del dashboard deben coincidir EXACTAMENTE con lo que se ve en
+      // cada columna, así que se excluye lo que el tablero no pinta:
+      // - impresiones SIN proyecto (el kanban solo muestra las anidadas en
+      //   proyectos; se crean p. ej. desde el detalle de un filamento);
+      // - completadas "limpiadas" con la escoba (dismissedAt).
       this.printLogRepository
         .createQueryBuilder('pl')
         .select('pl.status', 'status')
         .addSelect('COUNT(*)', 'count')
         .where('pl.createdBy = :userId', { userId })
+        .andWhere('pl.projectId IS NOT NULL')
         .andWhere("(pl.status != 'completed' OR pl.dismissedAt IS NULL)")
         .groupBy('pl.status')
         .getRawMany(),
