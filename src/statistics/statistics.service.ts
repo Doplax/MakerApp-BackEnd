@@ -185,12 +185,15 @@ export class StatisticsService {
         .getRawOne(),
 
       // Distribución por estado de impresión (columnas del kanban de Proyectos:
-      // pending=Presupuestado, in_progress=En producción, completed=Pendiente envío)
+      // pending=Presupuestado, in_progress=En producción, completed=Pendiente envío).
+      // Las completadas "limpiadas" del tablero (dismissedAt) NO cuentan: el chip
+      // ENVÍO del dashboard debe coincidir con lo que se ve en la columna.
       this.printLogRepository
         .createQueryBuilder('pl')
         .select('pl.status', 'status')
         .addSelect('COUNT(*)', 'count')
         .where('pl.createdBy = :userId', { userId })
+        .andWhere("(pl.status != 'completed' OR pl.dismissedAt IS NULL)")
         .groupBy('pl.status')
         .getRawMany(),
 

@@ -188,11 +188,44 @@ export class PrintLogsService {
       printLog.printStartedAt = new Date();
     }
 
+    // Si la impresión sale de COMPLETADA (re-encolar, cancelar…), su "limpiado"
+    // del kanban deja de tener sentido: debe volver a verse y a contarse.
+    if (
+      updatePrintLogDto.status !== undefined &&
+      updatePrintLogDto.status !== PrintStatus.COMPLETED &&
+      printLog.dismissedAt
+    ) {
+      printLog.dismissedAt = null;
+    }
+
     const saved = await this.printLogRepository.save(printLog);
     if (oldImageUrl && oldImageUrl !== saved.imageUrl) {
       await this.cloudinary.deleteByUrl(oldImageUrl);
     }
     return saved;
+  }
+
+  /**
+   * "Limpiar" del kanban: marca como retiradas (dismissedAt) las impresiones
+   * COMPLETADAS del usuario cuyos ids se pasen. La propiedad y el estado se
+   * imponen en el WHERE (ids ajenos o no completados se ignoran, sin error):
+   * ni IDOR ni retirar tarjetas aún vivas. Idempotente.
+   */
+  async dismissDelivered(
+    ids: string[],
+    user: User,
+  ): Promise<{ dismissed: number }> {
+    if (!ids.length) return { dismissed: 0 };
+    const result = await this.printLogRepository
+      .createQueryBuilder()
+      .update()
+      .set({ dismissedAt: new Date() })
+      .where('id IN (:...ids)', { ids })
+      .andWhere('"createdById" = :userId', { userId: user.id })
+      .andWhere('status = :status', { status: PrintStatus.COMPLETED })
+      .andWhere('"dismissedAt" IS NULL')
+      .execute();
+    return { dismissed: result.affected ?? 0 };
   }
 
   async remove(id: string, user: User): Promise<{ message: string }> {

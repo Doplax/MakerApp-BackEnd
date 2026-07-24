@@ -39,6 +39,15 @@ export class PrintLog {
   @Column({ type: 'timestamp', nullable: true })
   printStartedAt!: Date | null;
 
+  /**
+   * "Limpiado" del kanban: cuándo el usuario retiró esta impresión COMPLETADA
+   * de la columna "Pendiente envío" (escoba / descartar tarjeta). Persistido en
+   * servidor para que el tablero y los contadores del dashboard coincidan en
+   * todos los dispositivos. Se resetea si la impresión vuelve a otra columna.
+   */
+  @Column({ type: 'timestamp', nullable: true })
+  dismissedAt!: Date | null;
+
   @Column({ type: 'text', nullable: true })
   notes!: string;
 

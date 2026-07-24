@@ -15,6 +15,7 @@ import { PrintLogsService } from './print-logs.service.js';
 import { CreatePrintLogDto } from './dto/create-print-log.dto.js';
 import { UpdatePrintLogDto } from './dto/update-print-log.dto.js';
 import { FilterPrintLogDto } from './dto/filter-print-log.dto.js';
+import { DismissPrintLogsDto } from './dto/dismiss-print-logs.dto.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { User } from '../users/entities/user.entity.js';
 import { RolesGuard } from '../common/guards/roles.guard.js';
@@ -38,6 +39,16 @@ export class PrintLogsController {
   @Get()
   findAll(@CurrentUser() user: User, @Query() filters: FilterPrintLogDto) {
     return this.printLogsService.findAll(user, filters);
+  }
+
+  /**
+   * "Limpiar" del kanban: retira impresiones COMPLETADAS de la columna
+   * "Pendiente envío" (persistido; el dashboard deja de contarlas). La
+   * propiedad se impone en el servicio.
+   */
+  @Post('dismiss')
+  dismiss(@Body() dto: DismissPrintLogsDto, @CurrentUser() user: User) {
+    return this.printLogsService.dismissDelivered(dto.ids, user);
   }
 
   @Get('filament/:filamentId')
