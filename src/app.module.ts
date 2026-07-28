@@ -37,6 +37,7 @@ import { ExchangeRatesModule } from './exchange-rates/exchange-rates.module.js';
 import { ClientsModule } from './clients/clients.module.js';
 import { CalendarModule } from './calendar/calendar.module.js';
 import { QuotesModule } from './quotes/quotes.module.js';
+import { NotesModule } from './notes/notes.module.js';
 
 @Module({
   imports: [
@@ -104,6 +105,7 @@ import { QuotesModule } from './quotes/quotes.module.js';
     ClientsModule,
     CalendarModule,
     QuotesModule,
+    NotesModule,
   ],
   controllers: [AppController],
   providers: [
