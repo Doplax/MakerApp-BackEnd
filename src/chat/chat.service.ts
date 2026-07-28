@@ -340,14 +340,14 @@ export class ChatService {
     await this.conversationRepo.save(c);
 
     const view = this.toMessageView(saved);
-    // Tiempo real: avisa al resto de participantes del nuevo mensaje.
+    // Tiempo real: avisa a TODOS los participantes, incluido el emisor. Emitir
+    // también a uno mismo sincroniza sus otras sesiones (móvil + escritorio);
+    // la pestaña que envió deduplica por id, así que no se duplica.
     for (const p of c.participants) {
-      if (p.user.id !== currentUser.id) {
-        this.gateway.emitMessage(p.user.id, {
-          conversationId: c.id,
-          message: view,
-        });
-      }
+      this.gateway.emitMessage(p.user.id, {
+        conversationId: c.id,
+        message: view,
+      });
     }
     return view;
   }
@@ -365,17 +365,16 @@ export class ChatService {
     participant.lastReadAt = new Date();
     await this.participantRepo.save(participant);
 
-    // Tiempo real: avisa a los demás participantes (recibos de lectura).
+    // Tiempo real: recibos de lectura a los demás participantes y, al propio
+    // lector, para que sus otras sesiones bajen el contador de no leídos.
     const others = await this.participantRepo.find({
       where: { conversation: { id: conversationId } },
     });
     for (const p of others) {
-      if (p.user.id !== currentUser.id) {
-        this.gateway.emitRead(p.user.id, {
-          conversationId,
-          readerId: currentUser.id,
-        });
-      }
+      this.gateway.emitRead(p.user.id, {
+        conversationId,
+        readerId: currentUser.id,
+      });
     }
   }
 

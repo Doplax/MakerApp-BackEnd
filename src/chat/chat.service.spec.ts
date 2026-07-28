@@ -228,10 +228,16 @@ describe('ChatService', () => {
       );
       expect(view.sender.id).toBe('a');
       expect(view.body).toBe('hola');
-      // Notifica al OTRO participante (b), nunca a sí mismo.
-      expect(gateway.emitMessage).toHaveBeenCalledTimes(1);
+      // Notifica por WS a AMBOS participantes: al destinatario (b) y al propio
+      // emisor (a), para sincronizar sus otras sesiones (móvil + escritorio).
+      // La pestaña que envió deduplica por id, así que no se duplica.
+      expect(gateway.emitMessage).toHaveBeenCalledTimes(2);
       expect(gateway.emitMessage).toHaveBeenCalledWith(
         'b',
+        expect.objectContaining({ conversationId: 'c1' }),
+      );
+      expect(gateway.emitMessage).toHaveBeenCalledWith(
+        'a',
         expect.objectContaining({ conversationId: 'c1' }),
       );
     });
