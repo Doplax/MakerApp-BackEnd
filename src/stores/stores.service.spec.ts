@@ -243,4 +243,34 @@ describe('StoresService', () => {
       ).toEqual(['latitude', 'longitude']);
     });
   });
+
+  describe('catálogo de la tienda (materiales e impresoras)', () => {
+    it('persiste los materiales que vende y si vende impresoras', async () => {
+      const { service, repo } = buildService();
+      repo.create.mockImplementation((x: unknown) => x);
+      repo.save.mockImplementation(async (x: unknown) => ({ id: 's1', ...(x as object) }));
+
+      const saved = await service.create({
+        name: 'Tienda 3D', url: 'https://t.com',
+        materials: ['PLA', 'PETG', 'ASA'], sellsPrinters: true,
+      } as never);
+
+      expect(repo.create).toHaveBeenCalledWith(
+        expect.objectContaining({ materials: ['PLA', 'PETG', 'ASA'], sellsPrinters: true }),
+      );
+      expect((saved as { materials: string[] }).materials).toEqual(['PLA', 'PETG', 'ASA']);
+    });
+
+    it('permite dejar la tienda sin materiales declarados (null)', async () => {
+      const { service, repo } = buildService();
+      repo.findOne.mockResolvedValue({ id: 's1', name: 'T', materials: ['PLA'], imageUrl: null });
+      repo.save.mockImplementation(async (x: unknown) => x);
+
+      await service.update('s1', { materials: null } as never);
+
+      expect(repo.save).toHaveBeenCalledWith(
+        expect.objectContaining({ materials: null }),
+      );
+    });
+  });
 });

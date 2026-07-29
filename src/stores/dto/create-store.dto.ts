@@ -1,5 +1,8 @@
 import {
+  ArrayMaxSize,
+  IsArray,
   IsBoolean,
+  IsEnum,
   IsInt,
   IsNotEmpty,
   IsNumber,
@@ -10,6 +13,7 @@ import {
   MaxLength,
   Min,
 } from 'class-validator';
+import { MaterialType } from '../../common/enums/index.js';
 
 export class CreateStoreDto {
   @IsString()
@@ -48,6 +52,18 @@ export class CreateStoreDto {
   @IsOptional()
   @MaxLength(200)
   address?: string | null;
+
+  /** Materiales de filamento que vende (subconjunto de MaterialType). */
+  @IsArray()
+  @IsOptional()
+  @ArrayMaxSize(20)
+  @IsEnum(MaterialType, { each: true })
+  materials?: MaterialType[] | null;
+
+  /** Si además vende impresoras 3D. */
+  @IsBoolean()
+  @IsOptional()
+  sellsPrinters?: boolean;
 
   @IsBoolean()
   @IsOptional()

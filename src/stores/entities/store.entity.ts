@@ -5,6 +5,7 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { MaterialType } from '../../common/enums/index.js';
 
 /**
  * Tienda de impresión 3D que vende filamento. Es un NEGOCIO FÍSICO: se
@@ -43,6 +44,17 @@ export class Store {
   /** Dirección legible (la que se enseña en el popup y en la lista). */
   @Column({ type: 'varchar', length: 200, nullable: true })
   address!: string | null;
+
+  /**
+   * Materiales de filamento que vende (PLA, PETG, ABS, ASA…). `simple-array`
+   * los persiste como texto separado por comas; lista vacía = no consta.
+   */
+  @Column({ type: 'simple-array', nullable: true })
+  materials!: MaterialType[] | null;
+
+  /** Si además de filamento vende impresoras 3D. */
+  @Column({ default: false })
+  sellsPrinters!: boolean;
 
   @Column({ default: true })
   isActive!: boolean;
