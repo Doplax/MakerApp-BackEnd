@@ -7,9 +7,10 @@ import {
 } from 'typeorm';
 
 /**
- * Tienda donde comprar filamento (tarjeta con enlace externo) que se muestra
- * en la página de Filamentos, junto a las ofertas. Las cura el admin; espejo
- * del módulo de ofertas (`filament_offers`).
+ * Tienda de impresión 3D que vende filamento. Es un NEGOCIO FÍSICO: se
+ * localiza en el mapa de makers (pin propio) y los makers la encuentran ahí
+ * o en la vista de lista. Las cura el admin. Desde la página de Filamentos el
+ * botón "Tiendas" lleva al mapa filtrado (`/home/makers-map?type=stores`).
  */
 @Entity('stores')
 export class Store {
@@ -29,6 +30,19 @@ export class Store {
   // (en ese caso entra en el contrato de limpieza y en URL_COLUMNS).
   @Column({ type: 'varchar', nullable: true })
   imageUrl!: string | null;
+
+  // ── Ubicación (negocio físico: se pinta en el mapa) ────────────
+  // Misma precisión que `users.latitude/longitude` (decimal 10,7). Postgres
+  // devuelve DECIMAL como string: el front coerciona con Number().
+  @Column({ type: 'decimal', precision: 10, scale: 7, nullable: true })
+  latitude!: number | null;
+
+  @Column({ type: 'decimal', precision: 10, scale: 7, nullable: true })
+  longitude!: number | null;
+
+  /** Dirección legible (la que se enseña en el popup y en la lista). */
+  @Column({ type: 'varchar', length: 200, nullable: true })
+  address!: string | null;
 
   @Column({ default: true })
   isActive!: boolean;
