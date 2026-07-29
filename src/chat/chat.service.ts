@@ -39,6 +39,13 @@ export interface ConversationSummary {
   updatedAt: Date;
   /** Hasta cuándo ha leído el OTRO participante (para los recibos ✓✓). */
   otherLastReadAt: Date | null;
+  /**
+   * "Pendiente de presupuestar": el OTRO participante mandó una petición de
+   * presupuesto (mensaje con adjunto `type:'project'`, que es lo que compone el
+   * formulario guiado `/public/maker/:id/quote`) y YO no he escrito nada
+   * después. Lo deriva el servidor (ver `findPendingQuoteConversationIds`).
+   */
+  pendingQuote: boolean;
 }
 
 /** Vista pública de un mensaje (sin exponer el User completo del emisor). */
@@ -163,6 +170,53 @@ export class ChatService {
   }
 
   /**
+   * Conversaciones (de las indicadas) que están **pendientes de presupuestar**:
+   * el otro participante pidió presupuesto (mensaje con adjunto de tipo
+   * `project`) y el usuario actual NO ha respondido después.
+   *
+   * ⚠️ **Una sola consulta agregada** para TODAS las conversaciones (nada de un
+   * `SELECT` por conversación): agrupa por conversación y se queda con la fecha
+   * de la última petición del otro y la del último mensaje mío; está pendiente
+   * si hay petición y mi último mensaje no es posterior a ella.
+   */
+  private async findPendingQuoteConversationIds(
+    userId: string,
+    conversationIds: string[],
+  ): Promise<Set<string>> {
+    const pending = new Set<string>();
+    if (conversationIds.length === 0) return pending;
+
+    const rows = await this.messageRepo
+      .createQueryBuilder('m')
+      .select('m."conversationId"', 'cid')
+      .addSelect(
+        `MAX(CASE WHEN m."senderId" != :uid AND m.attachment->>'type' = 'project' THEN m."createdAt" END)`,
+        'lastquote',
+      )
+      .addSelect(
+        `MAX(CASE WHEN m."senderId" = :uid THEN m."createdAt" END)`,
+        'lastmine',
+      )
+      .where('m."conversationId" IN (:...cids)', { cids: conversationIds })
+      .setParameter('uid', userId)
+      .groupBy('m."conversationId"')
+      .getRawMany<{
+        cid: string;
+        lastquote: Date | string | null;
+        lastmine: Date | string | null;
+      }>();
+
+    for (const row of rows) {
+      if (!row.lastquote) continue; // nunca pidió presupuesto
+      const quoteAt = new Date(row.lastquote).getTime();
+      const mineAt = row.lastmine ? new Date(row.lastmine).getTime() : null;
+      // Sin respuesta mía, o mi último mensaje es ANTERIOR a la petición.
+      if (mineAt === null || mineAt <= quoteAt) pending.add(row.cid);
+    }
+    return pending;
+  }
+
+  /**
    * Lista de conversaciones del usuario, ordenadas por actividad reciente,
    * con el último mensaje y el contador de no-leídos.
    */
@@ -184,6 +238,12 @@ export class ChatService {
     const lastReadByConv = new Map<string, Date | null>();
     memberships.forEach((m) =>
       lastReadByConv.set(m.conversation.id, m.lastReadAt),
+    );
+
+    // Peticiones de presupuesto sin responder: UNA consulta para toda la lista.
+    const pendingQuoteIds = await this.findPendingQuoteConversationIds(
+      currentUser.id,
+      conversations.map((c) => c.id),
     );
 
     const summaries: ConversationSummary[] = [];
@@ -227,6 +287,7 @@ export class ChatService {
         unreadCount,
         updatedAt: c.lastMessageAt ?? c.updatedAt,
         otherLastReadAt: otherParticipant?.lastReadAt ?? null,
+        pendingQuote: pendingQuoteIds.has(c.id),
       });
     }
 
@@ -255,6 +316,14 @@ export class ChatService {
       order: { createdAt: 'DESC' },
     });
 
+    // Misma derivación que en el listado (aquí, para una sola conversación),
+    // para que el resumen que devuelve `POST /chat/conversations` sea coherente
+    // con el de la lista y el filtro del front no parpadee.
+    const pendingQuoteIds = await this.findPendingQuoteConversationIds(
+      currentUser.id,
+      [c.id],
+    );
+
     return {
       id: c.id,
       otherUser: {
@@ -273,6 +342,7 @@ export class ChatService {
       unreadCount: 0,
       updatedAt: c.lastMessageAt ?? c.updatedAt,
       otherLastReadAt: otherParticipant?.lastReadAt ?? null,
+      pendingQuote: pendingQuoteIds.has(c.id),
     };
   }
 

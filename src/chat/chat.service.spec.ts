@@ -370,4 +370,164 @@ describe('ChatService', () => {
       expect(view.attachment).toBeNull();
     });
   });
+
+  // ── listForUser: "pendiente de presupuestar" ───────────────────────────
+  //
+  // El formulario guiado de presupuesto manda un mensaje con adjunto
+  // `type:'project'`. Si el maker aún no ha contestado, esa conversación está
+  // PENDIENTE DE PRESUPUESTAR (chip del listado del chat). La derivación se
+  // hace en UNA consulta agregada para todas las conversaciones (no N+1).
+  describe('listForUser · pendingQuote', () => {
+    const me = makeUser({ id: 'maker', fullName: 'Maker' });
+
+    /** Devuelve el mock de un participante-membresía del usuario actual. */
+    const membership = (convId: string) => ({
+      conversation: { id: convId },
+      lastReadAt: null,
+    });
+
+    /** Conversación 1:1 entre el usuario actual y `otherId`. */
+    const conversation = (id: string, otherId: string) => ({
+      id,
+      participants: [
+        { user: me, lastReadAt: null },
+        { user: makeUser({ id: otherId, fullName: `User ${otherId}` }), lastReadAt: null },
+      ],
+      lastMessageAt: new Date('2026-07-20T10:00:00Z'),
+      updatedAt: new Date('2026-07-20T10:00:00Z'),
+    });
+
+    /**
+     * Prepara los mocks del listado. `rows` son las filas crudas que devuelve
+     * la consulta agregada de peticiones de presupuesto.
+     */
+    function primeList(
+      convs: ReturnType<typeof conversation>[],
+      rows: {
+        cid: string;
+        lastquote: string | null;
+        lastmine: string | null;
+      }[],
+    ): { getRawMany: jest.Mock; createQueryBuilderCalls: () => number } {
+      participantRepo.find.mockResolvedValue(convs.map((c) => membership(c.id)));
+      conversationRepo.find.mockResolvedValue(convs);
+      messageRepo.findOne.mockResolvedValue(null); // último mensaje: irrelevante aquí
+
+      const getRawMany = jest.fn(async () => rows);
+      const qb = {
+        select: jest.fn(() => qb),
+        addSelect: jest.fn(() => qb),
+        where: jest.fn(() => qb),
+        andWhere: jest.fn(() => qb),
+        setParameter: jest.fn(() => qb),
+        groupBy: jest.fn(() => qb),
+        getRawMany,
+        getCount: jest.fn(async () => 0), // el de no-leídos
+      };
+      messageRepo.createQueryBuilder.mockReturnValue(qb);
+      return {
+        getRawMany,
+        createQueryBuilderCalls: () =>
+          messageRepo.createQueryBuilder.mock.calls.length,
+      };
+    }
+
+    it('petición de presupuesto SIN responder → pendingQuote true', async () => {
+      primeList(
+        [conversation('c1', 'buyer')],
+        [{ cid: 'c1', lastquote: '2026-07-20T10:00:00Z', lastmine: null }],
+      );
+
+      const [summary] = await service.listForUser(me);
+
+      expect(summary.id).toBe('c1');
+      expect(summary.pendingQuote).toBe(true);
+    });
+
+    it('si el maker responde DESPUÉS de la petición → pendingQuote false', async () => {
+      primeList(
+        [conversation('c1', 'buyer')],
+        [
+          {
+            cid: 'c1',
+            lastquote: '2026-07-20T10:00:00Z',
+            lastmine: '2026-07-20T10:05:00Z', // respuesta posterior
+          },
+        ],
+      );
+
+      const [summary] = await service.listForUser(me);
+
+      expect(summary.pendingQuote).toBe(false);
+    });
+
+    it('mi respuesta ANTERIOR a la petición no cuenta → sigue pendingQuote true', async () => {
+      primeList(
+        [conversation('c1', 'buyer')],
+        [
+          {
+            cid: 'c1',
+            lastquote: '2026-07-20T10:00:00Z',
+            lastmine: '2026-07-19T09:00:00Z', // hablamos antes de que pidiera
+          },
+        ],
+      );
+
+      const [summary] = await service.listForUser(me);
+
+      expect(summary.pendingQuote).toBe(true);
+    });
+
+    it('conversación SIN petición de presupuesto → pendingQuote false', async () => {
+      primeList(
+        [conversation('c1', 'buyer')],
+        [{ cid: 'c1', lastquote: null, lastmine: '2026-07-20T10:05:00Z' }],
+      );
+
+      const [summary] = await service.listForUser(me);
+
+      expect(summary.pendingQuote).toBe(false);
+    });
+
+    it('marca solo las pendientes y usa UNA sola consulta agregada para todas (sin N+1)', async () => {
+      const probe = primeList(
+        [
+          conversation('c1', 'buyer1'), // pide y no respondo → pendiente
+          conversation('c2', 'buyer2'), // pide y respondo → no pendiente
+          conversation('c3', 'buyer3'), // sin petición → no pendiente
+        ],
+        [
+          { cid: 'c1', lastquote: '2026-07-20T10:00:00Z', lastmine: null },
+          {
+            cid: 'c2',
+            lastquote: '2026-07-20T10:00:00Z',
+            lastmine: '2026-07-20T11:00:00Z',
+          },
+          { cid: 'c3', lastquote: null, lastmine: null },
+        ],
+      );
+
+      const summaries = await service.listForUser(me);
+
+      expect(summaries.map((s) => [s.id, s.pendingQuote])).toEqual([
+        ['c1', true],
+        ['c2', false],
+        ['c3', false],
+      ]);
+      // La agregada se ejecuta UNA vez para las 3 conversaciones…
+      expect(probe.getRawMany).toHaveBeenCalledTimes(1);
+      // …y el total de query builders creados es 1 (agregada) + 3 (no leídos):
+      // la marca de presupuesto NO añade una consulta por conversación.
+      expect(probe.createQueryBuilderCalls()).toBe(4);
+    });
+
+    it('sin conversaciones no lanza la consulta agregada', async () => {
+      participantRepo.find.mockResolvedValue([]);
+
+      const summaries = await service.listForUser(me);
+
+      expect(summaries).toEqual([]);
+      expect(messageRepo.createQueryBuilder).not.toHaveBeenCalled();
+    });
+  });
 });
