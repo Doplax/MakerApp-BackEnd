@@ -13,6 +13,11 @@ export class UpdateUserDto extends PartialType(CreateUserDto) {
   @IsOptional()
   isActive?: boolean;
 
+  /** Acceso al chat con MakerBot (solo miembros de Skool; lo concede el admin). */
+  @IsBoolean()
+  @IsOptional()
+  makerBotAccess?: boolean;
+
   @IsString()
   @IsOptional()
   @MaxLength(150)

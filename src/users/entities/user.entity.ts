@@ -52,6 +52,14 @@ export class User {
   @Column({ default: true })
   isActive!: boolean;
 
+  /**
+   * Acceso al chat con MakerBot (ago-2026): SOLO para miembros de la comunidad
+   * de Skool. Lo concede/retira el ADMIN a mano desde /admin/users (revisa la
+   * lista de miembros periódicamente); por defecto nadie lo tiene.
+   */
+  @Column({ default: false })
+  makerBotAccess!: boolean;
+
   @Column({ nullable: true })
   avatarUrl!: string;
 
