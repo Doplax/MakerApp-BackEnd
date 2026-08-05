@@ -48,6 +48,7 @@ export class StorageSweeperService {
     ['stores', 'imageUrl'],
     ['printer_accessories', 'imageUrl'],
     ['print_logs', 'imageUrl'],
+    ['catalog_purchase_options', 'vendorLogoUrl'],
   ];
 
   constructor(

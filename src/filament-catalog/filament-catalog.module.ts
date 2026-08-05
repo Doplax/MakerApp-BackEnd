@@ -5,17 +5,19 @@ import { FilamentCatalogController } from './filament-catalog.controller.js';
 import { CatalogSheetSyncService } from './catalog-sheet-sync.service.js';
 import { CatalogSheetSyncController } from './catalog-sheet-sync.controller.js';
 import { FilamentCatalog } from './entities/filament-catalog.entity.js';
+import { CatalogPurchaseOption } from './entities/catalog-purchase-option.entity.js';
+import { PurchaseOptionsService } from './purchase-options.service.js';
 import { CloudinaryModule } from '../cloudinary/cloudinary.module.js';
 import { BrandsModule } from '../brands/brands.module.js';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([FilamentCatalog]),
+    TypeOrmModule.forFeature([FilamentCatalog, CatalogPurchaseOption]),
     CloudinaryModule,
     BrandsModule,
   ],
   controllers: [FilamentCatalogController, CatalogSheetSyncController],
-  providers: [FilamentCatalogService, CatalogSheetSyncService],
+  providers: [FilamentCatalogService, CatalogSheetSyncService, PurchaseOptionsService],
   exports: [FilamentCatalogService],
 })
 export class FilamentCatalogModule {}
