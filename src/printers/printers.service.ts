@@ -217,6 +217,7 @@ export class PrintersService {
         printerId: printer.id,
         type: dto.type,
         note: dto.note?.trim() || null,
+        checklist: dto.checklist?.length ? dto.checklist : null,
         printerHours: printer.totalPrintHours ?? null,
       }),
     );

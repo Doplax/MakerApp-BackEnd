@@ -88,16 +88,39 @@ describe('PrintersService', () => {
     );
 
     // Entrada del historial: nota recortada + snapshot de horas (100 + 2).
+    // Sin checklist en el body → null (registros a la antigua siguen valiendo).
     expect(maintenanceRepo.create).toHaveBeenCalledWith({
       printerId: 'p1',
       type: 'simple',
       note: 'Limpieza de boquilla',
+      checklist: null,
       printerHours: 102,
     });
     // La fecha del último mantenimiento simple se actualiza a la de la entrada.
     const savedPrinter = printerRepo.save.mock.calls[0][0];
     expect(savedPrinter.lastMaintenanceSimpleAt).toEqual(entry.createdAt);
     expect(savedPrinter.lastMaintenanceFullAt).toBeUndefined();
+  });
+
+  it('recordMaintenance persiste el checklist tal y como lo dejó el maker', async () => {
+    const { svc, printerRepo, maintenanceRepo } = makeService();
+    const user = { id: 'u1' } as never;
+    printerRepo.findOne.mockResolvedValue({
+      id: 'p1',
+      name: 'MK4',
+      initialPrintHours: 0,
+      printLogs: [],
+    });
+    const checklist = [
+      { label: 'Limpiar la superficie de impresión', done: true },
+      { label: 'Lubricar eje X', done: false },
+    ];
+
+    await svc.recordMaintenance('p1', { type: 'full', checklist }, user);
+
+    expect(maintenanceRepo.create).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'full', checklist }),
+    );
   });
 
   it('findMaintenances valida propiedad y lista el historial más reciente primero', async () => {

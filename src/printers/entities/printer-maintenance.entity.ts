@@ -33,6 +33,14 @@ export class PrinterMaintenance {
   @Column({ type: 'text', nullable: true })
   note!: string | null;
 
+  /**
+   * Checklist tal y como lo dejó el maker al registrar (labels ya resueltos
+   * en su idioma + marcado). jsonb: se guarda y se lee como bloque; null en
+   * los registros antiguos (anteriores al checklist, ago-2026).
+   */
+  @Column({ type: 'jsonb', nullable: true })
+  checklist!: { label: string; done: boolean }[] | null;
+
   // Horas totales de la máquina en el momento del mantenimiento (snapshot).
   @Column('int', { nullable: true })
   printerHours!: number | null;
